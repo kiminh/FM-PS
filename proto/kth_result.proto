@@ -1,0 +1,5 @@
+message KthResult{
+	optional uint64 num_correct_answers = 1;
+	optional uint64 training_size = 2;
+	optional uint32 t = 3;
+}

@@ -1,0 +1,7 @@
+syntax = "proto2";
+package task;
+
+message SerializedNodeInfo{
+ optional string ip = 1;
+ optional uint32 port = 2;
+}
