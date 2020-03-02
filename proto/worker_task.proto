@@ -2,8 +2,8 @@ syntax = "proto2";
 package task;
 
 message LayerStruct{
-	optional TensorInfo input_shape = 1;
-	optional TensorInfo output_shape = 2;
+	optional Parameter input_shape = 1;
+	optional Parameter output_shape = 2;
 	optional string name = 3;
 	optional string activation = 4;
 }

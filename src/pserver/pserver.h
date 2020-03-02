@@ -8,12 +8,13 @@
 
 //void regist_to_master();
 //得到响应后得到id,添加到NodeInfo
-
+#include<string>
+#include<unordered_map>
 
 class Pserver{
  public:
   //构造
- 	Pserver(const string& master_ip, int master_port){};
+ 	Pserver(const std::string& master_ip, int master_port){};
 
   void regist_to_master();
 
@@ -40,7 +41,7 @@ class Pserver{
   ServerTask server_task_;
   //eigen c++算法库（待学习）
 	//TODO
-  unordered_map<Key,Value> parameter_;
+  std::unordered_map<Key,Value> parameter_;
 	//TODO
   //Optimizer optimizer_;
 };

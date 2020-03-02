@@ -1,7 +1,7 @@
 #worker建立之初,可以通过main函数告诉该类master的ip和port
 
 #Tworker职责在于拉取最新的参数，算出本轮梯度push到服务端
-class Tworker:
+class Tworker(object):
   del __init__(self,master_ip,master_port):
 		self.master_ip = master_ip
 		self.master_port = master_port
@@ -9,7 +9,7 @@ class Tworker:
     #与master的客户端
     self.master_client = None
     #与一组server的客户端列表
-    self.para_client = None
+    self.parameter_client = None
 		self.server_group = None
     self.task = None
     self.network = None
@@ -59,7 +59,7 @@ class Tworker:
     pass
 
   #将反序列化后的参数更新到self.network
-  def fill_newest_para(self):
+  def fill_newest_parameter(self):
     pass
 
   #开始第t个epoch的训练

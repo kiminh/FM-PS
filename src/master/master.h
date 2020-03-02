@@ -4,10 +4,8 @@
 #include<vector>
 #include<string>
 
-using namespace std;
-
 struct NodeInfo{
-  string ip;
+  std::string ip;
   int port;
   int id;
 };
@@ -27,9 +25,9 @@ struct NodeInfo{
 //void count_kth_result(TaskResult&);
 //@para worker向master请求提交暂时结果的引用
 //return 无
-//功能：将序列化后的训练结果反序列化并且汇总到vector<KthResult>的第k个元素
+//功能：将序列化后的训练结果反序列化并且汇总到std::vector<KthResult>的第k个元素
 
-//int handle_worker_regist(string ip, int port);
+//int handle_worker_regist(std::string ip, int port);
 //@para worker ip
 //@para worker port
 //return worker id
@@ -44,7 +42,7 @@ struct NodeInfo{
 //WorkerTask pack_worker_task();
 //@para 无
 //return 返回worker的计算任务以及需要连接的server对象的信息
-//在任务和注册均完成之后，若此时收到worker_ask_for_task()的请求,则从Task和vector<NodeInfo> server_
+//在任务和注册均完成之后，若此时收到worker_ask_for_task()的请求,则从Task和std::vector<NodeInfo> server_
 //中解析并打包成WorkerTask(序列化对象)
 
 //ServerTask pack_server_task();
@@ -60,10 +58,10 @@ class Master{
   void recive_task(NetworkStruct&, DistInfo&);
 
 	//worker注册函数
-	int handle_worker_regist(string ip, int port);
+	int handle_worker_regist(std::string ip, int port);
 
 	//server注册函数
-	int handle_server_regist(string ip, int port);
+	int handle_server_regist(std::string ip, int port);
 
 	//检查是否可以进行分配任务的函数
 	bool check_ready_to_dispatch_task();
@@ -77,15 +75,15 @@ class Master{
 	//将第k轮结果发送给Model
 	void count_kth_result(KthResult&);
 
-  //关闭与注册节点的连接
-  bool close_connection();
+  //关闭整个集群
+  void shut_down_cluster();
   
  private:
 	TSimpleServer task_server_;
   //做了一个信息的整合，不是序列化对象
   Task task_;
-  vector<NodeInfo> connected_worker_;
-  vector<NodeInfo> connected_server_;
-  vector<KthResult> kth_result_;
+  std::vector<NodeInfo> connected_worker_;
+  std::vector<NodeInfo> connected_server_;
+  std::vector<KthResult> kth_result_;
 };
 #endif

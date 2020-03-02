@@ -1,8 +1,3 @@
-#神经网络参数表
-#从右往左表示该层神经网络拥有什么参数
-#0b11就表示该层神经网络有w和b两个参数，那么就可以在解析的时候去loop参数表，访问参数名
-#biases weights
-
 class Layer(object):
   def __init__(self, input_size, activation):
     self.size = input_size
@@ -10,18 +5,24 @@ class Layer(object):
 
 #参数key为"input_w", "input_b"
 class InputLayer(Layer):
-	#每个神经网络设置一个数字来表示它有哪些参数
-	self.parameter_list = 0b10
-	self.name = "input"
-	self.name_b = self.name + "_b"
-
+  def __init__(self, input_size, activation):
+    self.size = input_size
+    self.activation = activation
+		self.name = "input"
+		self.name_b = self.name + "_b"
+	def serialize(self):
+		pass
 
 #参数key为""
 class FClayer(Layer):
-	self.parameter_list = 0b11
-  self.name = "dense"
-	self.name_w = self.name + "_w"
-	self.name_b = self.name + "_b"
+  def __init__(self, input_size, activation):
+    self.size = input_size
+    self.activation = activation
+		self.name = "dense"
+		self.name_w = self.name + "_w"
+		self.name_b = self.name + "_b"
+	def serialize(self):
+		pass
 	
 
 class HyperParameter(object):
@@ -38,7 +39,7 @@ class Dist(object):
 		self.consistence = consistence
 		self.model_division = model_division
 
-class Model:
+class Model(object):
   del __init__(self):
     #此为序列化后对象
     self.network_struct = None

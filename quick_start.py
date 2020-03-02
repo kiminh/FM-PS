@@ -10,9 +10,7 @@ model.set_network([
 		loss = "cross_entropy"
     learning_rate = 0.3,
     epoch = 30,
-    mini_batch_size = 15
-  )
-)
+    mini_batch_size = 15))
 
 model.set_dist_info(Dist("data.zip",  "average","BSP","model_division"))
 
@@ -20,7 +18,5 @@ model.set_dist_info(Dist("data.zip",  "average","BSP","model_division"))
 master_ip = "127.0.0.3"
 master_port = "9696"
 model.submit(ip,port)
-
-
 model.query()
 
