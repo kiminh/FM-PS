@@ -11,10 +11,16 @@
 #include<string>
 #include<unordered_map>
 
+#include"../common/gen-cpp/MLtask.h"
+#include"../common/transport.pb.h"
+#include"../common/nodeinfo.h"
+
+#include <thrift/server/TSimpleServer.h>
+
 class Pserver{
  public:
   //构造
-   Pserver(const std::string& master_ip, int master_port){};
+  Pserver(const std::string& master_ip, int master_port){}
 
   void regist_to_master();
 
@@ -35,13 +41,13 @@ class Pserver{
   bool save_parameter();
   
  private:
-  MLtaskClient task_;
-  TSimpleServer para_server_;
+  //MLtaskClient task_;
+  //::apache::thrift::server::TSimpleServer para_server_;
   NodeInfo server_;
-  ServerTask server_task_;
+  //task::ServerTask server_task_;
   //eigen c++算法库（待学习）
   //TODO
-  std::unordered_map<Key,Value> parameter_;
+  //std::unordered_map<Key,Value> parameter_;
   //TODO
   //Optimizer optimizer_;
 };

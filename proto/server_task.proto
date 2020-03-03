@@ -1,3 +1,6 @@
+syntax = "proto2";
+package task;
+
 message ServerTask{
   //for transport
   optional uint32 epoch = 6;

@@ -4,11 +4,13 @@
 #include<vector>
 #include<string>
 
-struct NodeInfo{
-  std::string ip;
-  int port;
-  int id;
-};
+#include"../common/transport.pb.h"
+#include"../common/nodeinfo.h"
+
+#include <thrift/server/TSimpleServer.h>
+
+#include"task.h"
+
 
 //构造函数：
 //Master(int port){}
@@ -52,10 +54,10 @@ struct NodeInfo{
 class Master{
  public:
   //构造
-  Master(int port);
+  Master(int port){}
 
   //接收用户提交的任务,反序列化到Task做一个整合
-  void recive_task(NetworkStruct&, DistInfo&);
+  void recive_task(task::NetworkStruct&, task::DistInfo&);
 
   //worker注册函数
   int handle_worker_regist(std::string ip, int port);
@@ -67,23 +69,23 @@ class Master{
   bool check_ready_to_dispatch_task();
 
   //打包worker计算任务
-  WorkerTask pack_worker_task();
+  task::WorkerTask pack_worker_task();
 
   //打包server计算任务
-  ServerTask pack_server_task();
+  task::ServerTask pack_server_task();
 
   //将第k轮结果发送给Model
-  void count_kth_result(KthResult&);
+  void count_kth_result(task::KthResult&);
 
   //关闭整个集群
   void shut_down_cluster();
 
  private:
-  TSimpleServer task_server_;
+  //::apache::thrift::server::TSimpleServer task_server_;
   //做了一个信息的整合，不是序列化对象
   Task task_;
   std::vector<NodeInfo> connected_worker_;
   std::vector<NodeInfo> connected_server_;
-  std::vector<KthResult> kth_result_;
+  std::vector<task::KthResult> kth_result_;
 };
 #endif

@@ -19,7 +19,12 @@ message Layer{
 
 message Parameter{
   optional string key = 1;
-  enum Data_type{int8 = 0, float16 = 1, float32 = 2, float64 = 3};
+  enum Data_type {
+    int8 = 0;
+    float16 = 1; 
+    float32 = 2; 
+    float64 = 3;
+  }
   optional uint32 dim = 2;
   repeated uint32 shape = 3;
 }

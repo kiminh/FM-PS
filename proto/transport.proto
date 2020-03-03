@@ -1,0 +1,109 @@
+syntax = "proto2";
+package task;
+
+message DistInfo{
+  //应该要注册上的worker
+  optional uint32 num_workers = 1;
+  optional uint32 num_servers = 2;
+  optional ParameterInfo parameter_info = 10; 
+  optional string data_path = 3;
+  //数据划分方式
+  optional string data_division = 4;
+  optional string model_division = 5;
+}
+
+message ParameterInfo{
+  //参数初始化方法
+  optional string parameter_initialize = 2;
+  //参数加载路径
+  optional string parameter_load_path = 3;
+  //参数存储路径
+  optional string pata_store_path = 4;
+}
+
+message KthResult{
+  optional uint64 num_correct_answers = 1;
+  optional uint64 training_size = 2;
+  optional uint32 t = 3;
+}
+
+//用来表示网络结构
+//层的数量，超参数有哪些，具体有哪些层
+message NetworkStruct{
+  optional uint32 nums_layers = 1;
+  optional HyperParameter hparameter = 2;
+  repeated Layer layers = 100;
+}
+
+//表示神经网络层
+//知道输出规模，输入规模，该层的name，激活函数是什么，有哪些参数
+message Layer{
+  optional string name = 3;
+  optional string activation = 4;
+  repeated Parameter parameter_list = 100;
+}
+
+message Parameter{
+  optional string key = 1;
+  enum Data_type {
+    int8 = 0;
+    float16 = 1; 
+    float32 = 2; 
+    float64 = 3;
+  }
+  optional uint32 dim = 2;
+  repeated uint32 shape = 3;
+}
+
+message HyperParameter{
+  optional string optimizer = 1;
+  optional float learning_rate = 2;
+  optional uint32 mini_batch_size = 3;
+  optional uint32 epoch = 4;
+  optional string loss = 5;
+  optional string consistency = 6;
+}
+
+message SerializedNodeInfo{
+ optional string ip = 1;
+ optional uint32 port = 2;
+}
+
+message ServerTask{
+  //for transport
+  optional uint32 epoch = 1;
+  optional string consistency = 2;
+  //for update parameter
+  optional string model_division = 3;
+  optional ParameterInfo parameter_info = 4;
+  optional string optimizer = 5;
+  optional float learning_rate = 6;
+  repeated Parameter parameter_list = 100;
+}
+
+message LayerStruct{
+  optional Parameter input_shape = 1;
+  optional Parameter output_shape = 2;
+  optional string name = 3;
+  optional string activation = 4;
+}
+
+message ServerInfo{
+  optional string ip = 1;
+  optional uint32 port = 2;
+}
+
+message WorkerTask{
+  //for data
+  optional string data_path = 1;
+  optional string data_division = 2;
+  //for network
+  optional uint32 nums_layers = 3;
+  optional uint32 mini_batch_size = 4;
+  optional string loss = 5;
+  repeated LayerStruct layers = 100;
+  //for transport
+  optional uint32 epoch = 6;
+  optional string consistency = 7;
+  repeated ServerInfo servers = 10;
+}
