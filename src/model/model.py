@@ -1,13 +1,13 @@
 class Layer(object):
-  def __init__(self, input_size, activation):
-    self.size = input_size
-    self.activation = activation
+	def __init__(self, input_size, activation):
+		self.size = input_size
+		self.activation = activation
 
 #参数key为"input_w", "input_b"
 class InputLayer(Layer):
-  def __init__(self, input_size, activation):
-    self.size = input_size
-    self.activation = activation
+	def __init__(self, input_size, activation):
+		self.size = input_size
+		self.activation = activation
 		self.name = "input"
 		self.name_b = self.name + "_b"
 	def serialize(self):
@@ -15,9 +15,9 @@ class InputLayer(Layer):
 
 #参数key为""
 class FClayer(Layer):
-  def __init__(self, input_size, activation):
-    self.size = input_size
-    self.activation = activation
+	def __init__(self, input_size, activation):
+		self.size = input_size
+		self.activation = activation
 		self.name = "dense"
 		self.name_w = self.name + "_w"
 		self.name_b = self.name + "_b"
@@ -40,12 +40,12 @@ class Dist(object):
 		self.model_division = model_division
 
 class Model(object):
-  del __init__(self):
-    #此为序列化后对象
-    self.network_struct = None
-    self.dist_info = None
-    #Model内需要封装一个客户端，向Master提交任务并且接收计算结果
-    self.task_client = None
+	del __init__(self):
+		#此为序列化后对象
+		self.network_struct = None
+		self.dist_info = None
+		#Model内需要封装一个客户端，向Master提交任务并且接收计算结果
+		self.task_client = None
 
 	#接收一个网络结构列表，逐层解析出网络结构信息，序列化到self.network_struct
 	#self.network_struct是一个protobuf的序列化对象

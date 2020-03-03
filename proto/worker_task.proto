@@ -19,12 +19,12 @@ message WorkerTask{
 	optional string data_division = 2;
 	//for network
 	optional uint32 nums_layers = 3;
-  optional uint32 mini_batch_size = 4;
-  optional string loss = 5;
+	optional uint32 mini_batch_size = 4;
+	optional string loss = 5;
 	repeated LayerStruct layers = 100;
 	//for transport
-  optional uint32 epoch = 6;
-  optional string consistency = 7;
+	optional uint32 epoch = 6;
+	optional string consistency = 7;
 	repeated ServerInfo servers = 10;
 }
 

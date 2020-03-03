@@ -13,37 +13,37 @@
 
 class Pserver{
  public:
-  //构造
+	//构造
  	Pserver(const std::string& master_ip, int master_port){};
 
-  void regist_to_master();
+	void regist_to_master();
 
 	//loop请求master响应任务
 	//并将返回的信息存入ServerTask
 	void ask_for_task();
 
 	//根据SeverTask中的信息加载对应参数到parameter_
-  void load_parameter_to_memory();
+	void load_parameter_to_memory();
 
 	//异步
 	//异步就是每在push请求中收到一组梯度就更新对应梯度
 	void update_parameter();
 	
 	//检查第t轮的参数是否ready
-  bool check_parameter(int t);	
+	bool check_parameter(int t);	
 
-  bool save_parameter();
-  
+	bool save_parameter();
+	
  private:
-  MLtaskClient task_;
-  TSimpleServer para_server_;
-  NodeInfo server_;
-  ServerTask server_task_;
-  //eigen c++算法库（待学习）
+	MLtaskClient task_;
+	TSimpleServer para_server_;
+	NodeInfo server_;
+	ServerTask server_task_;
+	//eigen c++算法库（待学习）
 	//TODO
-  std::unordered_map<Key,Value> parameter_;
+	std::unordered_map<Key,Value> parameter_;
 	//TODO
-  //Optimizer optimizer_;
+	//Optimizer optimizer_;
 };
 
 #endif

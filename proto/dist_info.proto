@@ -14,9 +14,9 @@ message DistInfo{
 
 message ParameterInfo{
 	//参数初始化方法
-  optional string parameter_initialize = 2;
+	optional string parameter_initialize = 2;
 	//参数加载路径
-  optional string parameter_load_path = 3;
+	optional string parameter_load_path = 3;
 	//参数存储路径
-  optional string pata_store_path = 4;
+	optional string pata_store_path = 4;
 }
