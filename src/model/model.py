@@ -13,7 +13,7 @@ class InputLayer(Layer):
   def serialize(self):
     pass
 
-#参数key为""
+#参数key""
 class FClayer(Layer):
   def __init__(self, input_size, activation):
     self.size = input_size
