@@ -5,9 +5,9 @@
 #include<string>
 
 struct NodeInfo{
-	std::string ip;
-	int port;
-	int id;
+  std::string ip;
+  int port;
+  int id;
 };
 
 //构造函数：
@@ -51,39 +51,39 @@ struct NodeInfo{
 
 class Master{
  public:
-	//构造
-	Master(int port);
+  //构造
+  Master(int port);
 
-	//接收用户提交的任务,反序列化到Task做一个整合
-	void recive_task(NetworkStruct&, DistInfo&);
+  //接收用户提交的任务,反序列化到Task做一个整合
+  void recive_task(NetworkStruct&, DistInfo&);
 
-	//worker注册函数
-	int handle_worker_regist(std::string ip, int port);
+  //worker注册函数
+  int handle_worker_regist(std::string ip, int port);
 
-	//server注册函数
-	int handle_server_regist(std::string ip, int port);
+  //server注册函数
+  int handle_server_regist(std::string ip, int port);
 
-	//检查是否可以进行分配任务的函数
-	bool check_ready_to_dispatch_task();
+  //检查是否可以进行分配任务的函数
+  bool check_ready_to_dispatch_task();
 
-	//打包worker计算任务
-	WorkerTask pack_worker_task();
+  //打包worker计算任务
+  WorkerTask pack_worker_task();
 
-	//打包server计算任务
-	ServerTask pack_server_task();
+  //打包server计算任务
+  ServerTask pack_server_task();
 
-	//将第k轮结果发送给Model
-	void count_kth_result(KthResult&);
+  //将第k轮结果发送给Model
+  void count_kth_result(KthResult&);
 
-	//关闭整个集群
-	void shut_down_cluster();
+  //关闭整个集群
+  void shut_down_cluster();
 
  private:
-	TSimpleServer task_server_;
-	//做了一个信息的整合，不是序列化对象
-	Task task_;
-	std::vector<NodeInfo> connected_worker_;
-	std::vector<NodeInfo> connected_server_;
-	std::vector<KthResult> kth_result_;
+  TSimpleServer task_server_;
+  //做了一个信息的整合，不是序列化对象
+  Task task_;
+  std::vector<NodeInfo> connected_worker_;
+  std::vector<NodeInfo> connected_server_;
+  std::vector<KthResult> kth_result_;
 };
 #endif

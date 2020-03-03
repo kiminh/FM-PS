@@ -2,15 +2,15 @@ import ...
 
 Model model
 model.set_network([
-	InputLayer(10, activation = "sigmoid"),
-	FClayer(20, activation = "sigmoid"),
-	FClayer(10, activation = "softmax")],
-	HyperParameter(
-		optimizer = "SGD",
-		loss = "cross_entropy"
-		learning_rate = 0.3,
-		epoch = 30,
-		mini_batch_size = 15))
+  InputLayer(10, activation = "sigmoid"),
+  FClayer(20, activation = "sigmoid"),
+  FClayer(10, activation = "softmax")],
+  HyperParameter(
+    optimizer = "SGD",
+    loss = "cross_entropy"
+    learning_rate = 0.3,
+    epoch = 30,
+    mini_batch_size = 15))
 
 model.set_dist_info(Dist("data.zip",  "average","BSP","model_division"))
 

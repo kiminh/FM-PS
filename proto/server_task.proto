@@ -1,11 +1,11 @@
 message ServerTask{
-	//for transport
-	optional uint32 epoch = 6;
-	optional string consistency = 7;
-	//for update parameter
-	optional string model_division = 5;
-	optional ParameterInfo parameter_info = 2;
-	optional string optimizer = 1;
-	optional float learning_rate = 2;
-	repeated Parameter parameter_list = 100;
+  //for transport
+  optional uint32 epoch = 6;
+  optional string consistency = 7;
+  //for update parameter
+  optional string model_division = 5;
+  optional ParameterInfo parameter_info = 2;
+  optional string optimizer = 1;
+  optional float learning_rate = 2;
+  repeated Parameter parameter_list = 100;
 }

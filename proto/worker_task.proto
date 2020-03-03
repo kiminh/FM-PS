@@ -2,29 +2,29 @@ syntax = "proto2";
 package task;
 
 message LayerStruct{
-	optional Parameter input_shape = 1;
-	optional Parameter output_shape = 2;
-	optional string name = 3;
-	optional string activation = 4;
+  optional Parameter input_shape = 1;
+  optional Parameter output_shape = 2;
+  optional string name = 3;
+  optional string activation = 4;
 }
 
 message ServerInfo{
-	optional string ip = 1;
-	optional int port = 2;
+  optional string ip = 1;
+  optional int port = 2;
 }
 
 message WorkerTask{
-	//for data
-	optional string data_path = 1;
-	optional string data_division = 2;
-	//for network
-	optional uint32 nums_layers = 3;
-	optional uint32 mini_batch_size = 4;
-	optional string loss = 5;
-	repeated LayerStruct layers = 100;
-	//for transport
-	optional uint32 epoch = 6;
-	optional string consistency = 7;
-	repeated ServerInfo servers = 10;
+  //for data
+  optional string data_path = 1;
+  optional string data_division = 2;
+  //for network
+  optional uint32 nums_layers = 3;
+  optional uint32 mini_batch_size = 4;
+  optional string loss = 5;
+  repeated LayerStruct layers = 100;
+  //for transport
+  optional uint32 epoch = 6;
+  optional string consistency = 7;
+  repeated ServerInfo servers = 10;
 }
 

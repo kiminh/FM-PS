@@ -2,21 +2,21 @@ syntax = "proto2";
 package task;
 
 message DistInfo{
-	//应该要注册上的worker
-	optional uint32 num_workers = 1;
-	optional uint32 num_servers = 2;
-	optional ParameterInfo parameter_info = 10; 
-	optional string data_path = 3;
-	//数据划分方式
-	optional string data_division = 4;
-	optional string model_division = 5;
+  //应该要注册上的worker
+  optional uint32 num_workers = 1;
+  optional uint32 num_servers = 2;
+  optional ParameterInfo parameter_info = 10; 
+  optional string data_path = 3;
+  //数据划分方式
+  optional string data_division = 4;
+  optional string model_division = 5;
 }
 
 message ParameterInfo{
-	//参数初始化方法
-	optional string parameter_initialize = 2;
-	//参数加载路径
-	optional string parameter_load_path = 3;
-	//参数存储路径
-	optional string pata_store_path = 4;
+  //参数初始化方法
+  optional string parameter_initialize = 2;
+  //参数加载路径
+  optional string parameter_load_path = 3;
+  //参数存储路径
+  optional string pata_store_path = 4;
 }
