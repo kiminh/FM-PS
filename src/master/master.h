@@ -4,12 +4,25 @@
 #include<vector>
 #include<string>
 
-#include"../common/transport.pb.h"
+//#include"../common/transport.pb.h"
 #include"../common/nodeinfo.h"
-
-#include <thrift/server/TSimpleServer.h>
+#include"../common/dist_info.pb.h"
+#include"../common/worker_task.pb.h"
 
 #include"task.h"
+
+//server.cpp
+#include "../common/gen-cpp/MLtask.h"
+#include <thrift/concurrency/ThreadManager.h>
+#include <thrift/concurrency/ThreadFactory.h>
+#include <thrift/protocol/TBinaryProtocol.h>
+#include <thrift/server/TSimpleServer.h>
+#include <thrift/server/TThreadPoolServer.h>
+#include <thrift/server/TThreadedServer.h>
+#include <thrift/transport/TServerSocket.h>
+#include <thrift/transport/TSocket.h>
+#include <thrift/transport/TTransportUtils.h>
+#include <thrift/TToString.h>
 
 
 //构造函数：
@@ -56,8 +69,7 @@ class Master{
   //构造
   Master(int port){}
 
-  //接收用户提交的任务,反序列化到Task做一个整合
-  void recive_task(task::NetworkStruct&, task::DistInfo&);
+  void start_serve();
 
   //worker注册函数
   int handle_worker_regist(std::string ip, int port);
@@ -69,23 +81,20 @@ class Master{
   bool check_ready_to_dispatch_task();
 
   //打包worker计算任务
-  task::WorkerTask pack_worker_task();
+  //task::WorkerTask pack_worker_task();
 
   //打包server计算任务
-  task::ServerTask pack_server_task();
+  //task::ServerTask pack_server_task();
 
   //将第k轮结果发送给Model
-  void count_kth_result(task::KthResult&);
+  //void count_kth_result(task::KthResult&);
 
   //关闭整个集群
   void shut_down_cluster();
 
  private:
-  //::apache::thrift::server::TSimpleServer task_server_;
-  //做了一个信息的整合，不是序列化对象
-  Task task_;
-  std::vector<NodeInfo> connected_worker_;
+  apache::thrift::server::TSimpleServer* task_server_;
   std::vector<NodeInfo> connected_server_;
-  std::vector<task::KthResult> kth_result_;
+  //std::vector<task::KthResult> kth_result_;
 };
 #endif

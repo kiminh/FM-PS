@@ -1,8 +1,28 @@
+import logging
+
+#序列化结构
+from common.worker_task_pb2 import *
+from dataloader.data_handler import * 
+
+#thrift RPC调用
+from task import MLtask
+from task.ttypes import *
+from task.constants import *
+
+#thrift RPC客户端
+from thrift import Thrift
+from thrift.transport import TSocket
+from thrift.transport import TTransport
+from thrift.protocol import TBinaryProtocol
+
+logging.basicConfig(level = logging.INFO)
+logger = logging.getLogger(__name__)
+
 #worker建立之初,可以通过main函数告诉该类master的ip和port
 
 #Tworker职责在于拉取最新的参数，算出本轮梯度push到服务端
 class Tworker(object):
-  del __init__(self,master_ip,master_port):
+  def __init__(self,master_ip,master_port):
     self.master_ip = master_ip
     self.master_port = master_port
     self.id = None
@@ -17,6 +37,7 @@ class Tworker(object):
     #记录现在训练到第几个epoch
     self.epoch = None
     self.gradient = None
+    self.data_handler = None
 
 #query_task
 
@@ -26,13 +47,39 @@ class Tworker(object):
   #return bool值标志是否注册成功
   #调用注册rpc服务会返回一个id需要保存到self.id
   def build_client_to_master(self):
-    pass
+    try:
+      transport = TSocket.TSocket(self.master_ip, self.master_port)
+      transport = TTransport.TBufferedTransport(transport)
+      protocol = TBinaryProtocol.TBinaryProtocol(transport)
+      #建立客户端
+      self.master_client = MLtask.Client(protocol)
+      transport.open()
+      logger.info("成功建立客户端")
+
+      #注册信息
+      #master并不需要掌握worker的身份信息
+      self.id = self.master_client.worker_regist_to_master("")
+      logger.info("id: "+self.id)
+    except Thrift.TException as tx:
+      logger.error(tx.message)
 
   #@para无
   #return 任务信息WorkerTask（内含一组需要连接的服务器）
   #需要保存到self.task以及self.server_group
   def ask_for_task(self):
-    pass
+    #反序列化任务
+    task = self.master_client.worker_ask_for_task().encode()
+    logger.info(len(task))
+    logger.info(type(task))
+    self.task = WorkerTask()
+    if not self.task.ParseFromString(task):
+      logger.error("反序列化任务失败")
+    if self.task.HasField('dataset'):
+      logger.info("收到任务中的数据集为"+self.task.dataset)
+    if self.task.HasField('data_path'):
+      logger.info("收到任务中的数据路径为"+self.task.data_path)
+
+
 
   #根据self.task中各层的信息和优化器等信息
   #加载数据以及动态构建神经网络保存到self.network
@@ -45,7 +92,17 @@ class Tworker(object):
   #有了路径，有了如何分配那么就可以把数据加载到self.data
   #同时根据路径不同文件格式解析训练数据
   def load_data(self):
-    pass
+    path = self.task.data_path
+    dataset = self.task.dataset
+    self.dataloader = DataLoader(path = path, dataset = dataset)
+    self.data = self.dataloader.get_data()
+    #training_data size
+    logger.info(len(self.data[0][0]))
+    #validation_data size
+    logger.info(len(self.data[1][0]))
+    #test_data size
+    logger.info(len(self.data[2][0]))
+    
 
   #根据self.server_group中的信息建立一个客户端组
   def connect_to_server(self):

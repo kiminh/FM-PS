@@ -10,6 +10,7 @@ message DistInfo{
   //数据划分方式
   optional string data_division = 4;
   optional string model_division = 5;
+  optional string dataset = 6;
 }
 
 message ParameterInfo{

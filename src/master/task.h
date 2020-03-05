@@ -47,5 +47,6 @@ struct Task{
   //common
   uint32_t epoch;
   std::string consistency;
+  std::string dataset;
 };
 #endif
