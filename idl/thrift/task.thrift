@@ -1,7 +1,8 @@
 //所有信息均由protobuf进行序列化反序列化，thrift只传输string（序列化后的容器）
 service MLtask{
   //model向master提交任务的请求，string为序列化后的networkstruct和distinfo
-  bool submit(1:string task),
+  //序列化应该使用binary instead of string, 避免encode问题
+  bool submit(1:string dist_info, 2:binary network_struct),
   //model会查询目前的任务进度
   string query(),
   //worker发送自己的ip和port向master注册，（若当前信息不可用则返回空）需要返回其id

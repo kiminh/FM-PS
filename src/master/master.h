@@ -7,6 +7,7 @@
 //#include"../common/transport.pb.h"
 #include"../common/nodeinfo.h"
 #include"../common/dist_info.pb.h"
+#include"../common/network_struct.pb.h"
 #include"../common/worker_task.pb.h"
 
 #include"task.h"
@@ -67,7 +68,7 @@
 class Master{
  public:
   //构造
-  Master(int port){}
+  Master(int port) : port_(port){}
 
   void start_serve();
 
@@ -93,6 +94,7 @@ class Master{
   void shut_down_cluster();
 
  private:
+  int port_;
   apache::thrift::server::TSimpleServer* task_server_;
   std::vector<NodeInfo> connected_server_;
   //std::vector<task::KthResult> kth_result_;

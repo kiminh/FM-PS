@@ -12,14 +12,21 @@ class MLtaskHandler : virtual public MLtaskIf {
  public:
   MLtaskHandler() : num_registed_worker_(0) {}
 
-  bool submit(const std::string& task) {
+  bool submit(const std::string& dist_info, const std::string& network_struct) {
     //承接receive_task任务
     //把提交的序列化的dist_info反序列化并存储到task
-    dist_info_.ParseFromString(task);
+    bool deserialize_dist_info_success = dist_info_.ParseFromString(dist_info);
+    bool deserialize_network_struct = network_struct_.ParseFromString(network_struct);
+    if(! deserialize_dist_info_success || !deserialize_network_struct){
+      cout << "反序列化分布式信息" << deserialize_dist_info_success << endl;
+      cout << "反序列化网络结构" << deserialize_network_struct << endl;
+      return false;
+    }
     cout << "提交了数据路径：" << dist_info_.data_path() << endl;
     cout << "提交了数据集处理任务" << dist_info_.dataset() << endl;
     task_.dataset = dist_info_.dataset();
     task_.data_path = dist_info_.data_path();
+    network_struct_.ParseFromString(network_struct);
     return true;
   }
 
@@ -68,6 +75,7 @@ class MLtaskHandler : virtual public MLtaskIf {
 
  private:
   task::DistInfo dist_info_;
+  task::NetworkStruct network_struct_;
   Task task_;
   uint32_t num_registed_worker_;
   uint32_t num_should_regist_worker;
@@ -76,10 +84,10 @@ class MLtaskHandler : virtual public MLtaskIf {
 void Master::start_serve(){
   shared_ptr<MLtaskHandler> handler(new MLtaskHandler());
   shared_ptr<TProcessor> processor(new MLtaskProcessor(handler));
-  shared_ptr<TServerTransport> server_transport(new TServerSocket(port));
+  shared_ptr<TServerTransport> server_transport(new TServerSocket(port_));
   shared_ptr<TTransportFactory> transport_factory(new TBufferedTransportFactory());
   shared_ptr<TProtocolFactory> protocol_factory(new TBinaryProtocolFactory());
   task_server_ = new TSimpleServer(processor, server_transport, transport_factory, protocol_factory);
+  cout << "Master start serve at port: " << port_ << endl;
   task_server_->serve();
-  cout << "Master start serve at port: " << port << endl;
 }
