@@ -12,7 +12,7 @@ service MLtask{
   string worker_ask_for_task(),
   //worker需要提交第t轮的计算任务结果，
   void worker_submit_kth_result(1:string kth_result),
-  //server发送自己的身份信息得到它的rank(在这里就是id)(负责哪一部分的参数)
+  //server发送自己的身份信息,不需要得到信息
   string server_regist_to_master(1:string server_info),
   //server同样需要loop接收计算任务，
   string server_ask_for_task()

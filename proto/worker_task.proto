@@ -8,11 +8,6 @@ package task;
   optional string activation = 4;
 }*/
 
-message SerializedNodeInfo{
- optional string ip = 1;
- optional uint32 port = 2;
-}
-
 message WorkerTask{
   //for data
   optional string data_path = 1;
@@ -25,7 +20,7 @@ message WorkerTask{
   //for transport
   optional uint32 epoch = 6;
   optional string consistency = 7;
-  repeated SerializedNodeInfo servers = 10;
+  //repeated SerializedNodeInfo servers = 10;
   optional string dataset = 11;
 }
 

@@ -3,24 +3,31 @@
 //构造函数
 //Pserver(const string& master_ip, int master_port){};
 //构造之初首先要作为客户端连接到Master，因此也需要创建一个MLtaskClient
-//同时作为服务端提供参数给Tworker因此需要建立一个服务端TSimpleServer
+//同时作为服务端提供参数给Tworker因此需要建立一个服务端TThreadPoolServer
 //保存自己的ip port到NodeInfo
 
 //void regist_to_master();
 //得到响应后得到id,添加到NodeInfo
+
+#include <thrift/protocol/TBinaryProtocol.h>
+#include <thrift/transport/TSocket.h>
+#include <thrift/transport/TTransportUtils.h>
+
 #include<string>
 #include<unordered_map>
 
 #include"../common/gen-cpp/MLtask.h"
-#include"../common/transport.pb.h"
+
+#include"../common/transport_info.pb.h"
 #include"../common/nodeinfo.h"
 
-#include <thrift/server/TSimpleServer.h>
+//#include <thrift/server/TSimpleServer.h>
 
 class Pserver{
  public:
   //构造
-  Pserver(const std::string& master_ip, int master_port){}
+  Pserver(const std::string& master_ip, int master_port)
+   : master_ip_(master_ip), master_port_(master_port){}
 
   void regist_to_master();
 
@@ -40,11 +47,16 @@ class Pserver{
 
   bool save_parameter();
   
+  //测试函数
+  void get_ip_port();
+  
  private:
-  //MLtaskClient task_;
-  //::apache::thrift::server::TSimpleServer para_server_;
+  std::string master_ip_;
+  int master_port_;
+  MLtaskClient* task_;
+  //::apache::thrift::server::TThreadPoolServer para_server_;
   NodeInfo server_;
-  //task::ServerTask server_task_;
+  task::ServerTask server_task_;
   //eigen c++算法库（待学习）
   //TODO
   //std::unordered_map<Key,Value> parameter_;

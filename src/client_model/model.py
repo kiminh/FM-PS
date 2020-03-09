@@ -2,11 +2,11 @@ import logging
 
 import sys
 sys.path.append("../src/common")
+sys.path.append("../common")
 sys.path.append("../src/common/gen-py")
+sys.path.append("../common/gen-py")
 
-
-from dist_info_pb2 import *
-from network_struct_pb2 import *
+from transport_info_pb2 import*
 from task import MLtask
 from task.ttypes import *
 from task.constants import *

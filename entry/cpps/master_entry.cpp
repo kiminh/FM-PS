@@ -5,7 +5,7 @@
 using namespace std;
 
 int main(int argc, char** argv){
-  Master* master = new Master(atoi(argv[1]));  
+  Master* master = new Master(atoi(argv[1]), 3, 3);  
   cout << "Master 启动" << endl;
   master->start_serve();
   return 0;

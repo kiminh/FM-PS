@@ -4,15 +4,10 @@
 #include<vector>
 #include<string>
 
-//#include"../common/transport.pb.h"
 #include"../common/nodeinfo.h"
-#include"../common/dist_info.pb.h"
-#include"../common/network_struct.pb.h"
-#include"../common/worker_task.pb.h"
 
-#include"task.h"
+#include"mltaskhandler.h"
 
-//server.cpp
 #include "../common/gen-cpp/MLtask.h"
 #include <thrift/concurrency/ThreadManager.h>
 #include <thrift/concurrency/ThreadFactory.h>
@@ -68,7 +63,7 @@
 class Master{
  public:
   //构造
-  Master(int port) : port_(port){}
+  Master(int port, uint32_t num_workers, uint32_t num_servers);
 
   void start_serve();
 
@@ -95,6 +90,8 @@ class Master{
 
  private:
   int port_;
+  uint32_t num_workers_;
+  uint32_t num_servers_;
   apache::thrift::server::TSimpleServer* task_server_;
   std::vector<NodeInfo> connected_server_;
   //std::vector<task::KthResult> kth_result_;
