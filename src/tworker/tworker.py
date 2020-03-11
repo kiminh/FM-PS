@@ -1,5 +1,8 @@
 import logging
 
+import sys
+sys.path.append("../src/exception")
+
 #序列化结构
 from common.worker_task_pb2 import *
 from dataloader.data_handler import * 
@@ -15,7 +18,10 @@ from thrift.transport import TSocket
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
-logging.basicConfig(level = logging.INFO)
+logging.basicConfig(level=logging.INFO,
+              format='%(asctime)s %(levelname)s '
+              '%(filename)s:%(lineno)d; '
+              '%(message)s')
 logger = logging.getLogger(__name__)
 
 #worker建立之初,可以通过main函数告诉该类master的ip和port
@@ -39,29 +45,21 @@ class Tworker(object):
     self.gradient = None
     self.data_handler = None
 
-#query_task
-
-  #根据全局Master信息建立客户端self.master_client
-  #@para无
-  #序列化为SerializedNodeInfo，并向master提出注册请求
-  #return bool值标志是否注册成功
-  #调用注册rpc服务会返回一个id需要保存到self.id
   def build_client_to_master(self):
-    try:
+    if self.master_client is None:
       transport = TSocket.TSocket(self.master_ip, self.master_port)
       transport = TTransport.TBufferedTransport(transport)
       protocol = TBinaryProtocol.TBinaryProtocol(transport)
       #建立客户端
       self.master_client = MLtask.Client(protocol)
-      transport.open()
-      logger.info("成功建立客户端")
-
-      #注册信息
-      #master并不需要掌握worker的身份信息
-      self.id = self.master_client.worker_regist_to_master("")
-      logger.info("id: "+self.id)
-    except Thrift.TException as tx:
-      logger.error(tx.message)
+    if transport.isOpen():
+      raise RepeatedConnectError()
+    transport.open()
+    logger.info("成功建立客户端")
+    #注册信息
+    #master并不需要掌握worker的身份信息
+    self.id = self.master_client.worker_regist_to_master("")
+    logger.info("id: "+self.id)
 
   #@para无
   #return 任务信息WorkerTask（内含一组需要连接的服务器）
@@ -79,9 +77,6 @@ class Tworker(object):
     if self.task.HasField('data_path'):
       logger.info("收到任务中的数据路径为"+self.task.data_path)
 
-
-
-  #根据self.task中各层的信息和优化器等信息
   #加载数据以及动态构建神经网络保存到self.network
   def set_training_env(self):
     pass
@@ -96,6 +91,7 @@ class Tworker(object):
     dataset = self.task.dataset
     self.dataloader = DataLoader(path = path, dataset = dataset)
     self.data = self.dataloader.get_data()
+    #TODO:添加处理其他数据集
     #training_data size
     logger.info(len(self.data[0][0]))
     #validation_data size

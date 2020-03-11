@@ -22,6 +22,7 @@ message ParameterInfo{
   optional string pata_store_path = 4;
 }
 
+//TODO:可能改表示网络结构的数据结构为图
 //用来表示网络结构
 //层的数量，超参数有哪些，具体有哪些层
 message NetworkStruct{
@@ -75,13 +76,6 @@ message ServerTask{
   optional float learning_rate = 2;
   repeated Parameter parameter_list = 100;
 }
-
-/*message LayerStruct{
-  optional Parameter input_shape = 1;
-  optional Parameter output_shape = 2;
-  optional string name = 3;
-  optional string activation = 4;
-}*/
 
 message WorkerTask{
   //for data

@@ -4,7 +4,8 @@
 #include<iostream>
 #include<vector>
 
-#include"../util/util.h"
+#include<glog/logging.h>
+
 #include"task.h"
 
 #include"../common/transport_info.pb.h"

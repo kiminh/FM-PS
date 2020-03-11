@@ -5,6 +5,9 @@ sys.path.append("../src/common")
 sys.path.append("../common")
 sys.path.append("../src/common/gen-py")
 sys.path.append("../common/gen-py")
+sys.path.append("../src/exception")
+
+from exception import *
 
 from transport_info_pb2 import*
 from task import MLtask
@@ -16,7 +19,12 @@ from thrift.transport import TSocket
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
-logging.basicConfig(level = logging.INFO)
+
+
+logging.basicConfig(level=logging.INFO,
+              format='%(asctime)s %(levelname)s '
+              '%(filename)s:%(lineno)d; '
+              '%(message)s')
 logger = logging.getLogger(__name__)
 
 class Model(object):
@@ -38,7 +46,7 @@ class Model(object):
     #网络信息设置好后各网络各自负责生成对应Layer的pb对象
     self.network_struct = NetworkStruct()
     self.network_struct.nums_layers = len(self.client_network)
-    for i in range(len(self.client_network)):
+    #TODO:存储网络的数据结构可能从list改为图    for i in range(len(self.client_network)):
       self.network_struct.layers.append(self.client_network[i].pb_layer)
 
     #超参数
@@ -86,29 +94,33 @@ class Model(object):
   def submit(self,ip,port):
     if self.task_client is None:
       self.connect_to_master(ip,port)
-    #数据任务task
-    #TODO,目前只有训练数据信息 
-    serialized_dist_info = self.dist_info.decode('utf-8')
-    serialized_network_struct = self.network_struct
     #RPC调用
-    self.task_client.submit(serialized_dist_info, serialized_network_struct)
+    self.task_client.submit(self.dist_info, self.network_struct)
 
 
-  #创建客户端并到master
-  #若成功连接则打印信息退出，不成功则由用户选择是否再次连接
+  #函数的签名应该要能反映出可以一直调用这个函数
+  #但是会得到不同的结果
+  #返回值应该是个None类型,因为在函数内如果成功连接则设置了客户端，其他情况均抛出了异常
+  #成功情况，第一次调用或只前几次连接都没有成功，这次成功连接上
+  #异常情况有以下几种：
+  #一、已经调用过建立客户端但是没有连接上，这时候调用该函数就应该跳过建立客户端的部分去完成连接，不发出异常
+  #二、已经建立客户端并且已经成功连接，这时候就要抛出一个RepeatedConnectError
+  #TODO port异常机制(超出表示范围)
   def connect_to_master(self, ip, port):
-    try:
+    #如果未建立过客户端则建立客户端，否则跳过建立客户端流程
+    if self.task_client is None:
       transport = TSocket.TSocket(ip, port)
       transport = TTransport.TBufferedTransport(transport)
       protocol = TBinaryProtocol.TBinaryProtocol(transport)
       #建立客户端
       self.task_client = MLtask.Client(protocol)
-      transport.open()
-      logger.info("成功与"+ip+" "+str(port)+"建立客户端")
-    except Thrift.TException as tx:
-      logger.error(tx.message)
+    if transport.isOpen():
+      raise RepeatedConnectError()
+    transport.open()
+    logger.info("成功与Master建立连接")
 
   #该函数每隔固定时间向master请求返回计算结果，若返回不为空则打印
   #若连接失败则重新连接
   def query(self):
-    pass
+    #TODO
+    #建立与master连接并接收训练结果机制

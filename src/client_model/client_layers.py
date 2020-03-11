@@ -1,4 +1,4 @@
-from network_struct_pb2 import *
+from transport_info_pb2 import *
 
 class BaseLayer(object):
   def __init__(self,output_shape):
@@ -24,12 +24,6 @@ class InputLayer(BaseLayer):
     parameter.key = self.name+"_"+"datashape"
     #暂且定为一个int
     parameter.shape.append(self.data_shape)
-
-  
-  #需要将pb_layer序列化后的string提供给model
-  def serialize(self):
-    self.build_pb_layer()
-    return self.pb_layer.SerializeToString()
 
 class DenseLayer(BaseLayer):
   def __init__(self, output_shape, activation):
@@ -60,8 +54,6 @@ class DenseLayer(BaseLayer):
     self.rank = rank
     self.name_w = self.name_w + "_" + str(self.rank)
     self.name_b = self.name_b + "_" + str(self.rank)
-    print(self.name_w, self.w_shape)
-    print(self.name_b, self.b_shape)
   
   def build_pb_layer(self):
     self.pb_layer = Layer()
@@ -75,7 +67,5 @@ class DenseLayer(BaseLayer):
     b.key = self.name_b
     b.shape.append(self.b_shape[0])
     b.shape.append(self.b_shape[1])
-  
-  def serialize(self):
-    self.build_pb_layer()
-    return self.pb_layer.SerializeToString()
+
+#TODO:加入更多种类的神经网络层

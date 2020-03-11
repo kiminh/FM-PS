@@ -1,5 +1,7 @@
 #include"mltaskhandler.h"
 
+#include<functional>
+
 using namespace std;
 using namespace ::apache::thrift;
 using namespace ::apache::thrift::protocol;
@@ -11,8 +13,8 @@ bool MLtaskHandler::submit(const std::string& dist_info, const std::string& netw
   bool deserialize_dist_info_success = dist_info_.ParseFromString(dist_info);
   bool deserialize_network_struct = network_struct_.ParseFromString(network_struct);
   if(! deserialize_dist_info_success || !deserialize_network_struct){
-    cout << "反序列化分布式信息" << deserialize_dist_info_success << endl;
-    cout << "反序列化网络结构" << deserialize_network_struct << endl;
+    LOG(INFO) << "反序列化分布式信息" << deserialize_dist_info_success;
+    LOG(INFO) << "反序列化网络结构" << deserialize_network_struct;
     return false;
   }
   task_.dataset = dist_info_.dataset();
@@ -28,42 +30,44 @@ void MLtaskHandler::worker_regist_to_master(std::string& _return, const std::str
 }
 
 void MLtaskHandler::worker_ask_for_task(std::string& _return) {
+  //TODO增加任务check逻辑
   //Task 信息序列化到WorkerTask(protobuf对象)
   task::WorkerTask worker_task;
   worker_task.set_data_path(task_.data_path);
   worker_task.set_dataset(task_.dataset);
-  cout << worker_task.data_path() << endl;
-  cout << worker_task.dataset() << endl;
+  LOG(INFO) << worker_task.data_path();
+  LOG(INFO) << worker_task.dataset();
   //序列化为字符串
   string serialized_task;
   if(!worker_task.SerializeToString(&serialized_task)){
-    cout << "序列化worker任务失败" << endl;
+    LOG(INFO) << "序列化worker任务失败";
   }
-  cout << "任务字节数：" << serialized_task.length() << endl;
+  LOG(INFO) << "任务字节数：" << serialized_task.length();
   //返回
   _return = serialized_task;
 }
 
 void MLtaskHandler::server_ask_for_task(std::string& _return) {
+  //TODO:
   //check task is ready or not
-  _return = "";
   if(!server_task_is_ready){
-    cout << "任务尚未打包完成" << endl;
+    LOG(INFO) << "任务尚未打包完成";
     return;
   }
   if(current_package_id >= num_should_regist_server_){
-    cout << "领取次数超出范围(一个server一轮只允许一次)" << endl;
-    cout << "已领取次数："  << current_package_id << endl;
+    LOG(INFO) << "领取次数超出范围(一个server一轮只允许一次)";
+    LOG(INFO) << "已领取次数："  << current_package_id;
     return;
   }
   //序列化当前任务
   string current_task;
   packed_server_tasks_[current_package_id].SerializeToString(&current_task);
   current_package_id++;
-  cout << "任务长度:" << current_task.length() << endl;
+  LOG(INFO) << "任务长度:" << current_task.length();
   _return = current_task;
 }
 
+//TODO网络结构可能会更改为图
 void MLtaskHandler::pack_parameters(){
   //对于每层网络
   for(int i = 0; i < network_struct_.layers_size(); i++){
@@ -72,7 +76,7 @@ void MLtaskHandler::pack_parameters(){
     for(int j = 0; j < layer.parameter_list_size(); j++){
       const task::Parameter& parameter = layer.parameter_list(j);
       //hash 到 某一server
-      size_t target = hash_string_to_int(parameter.key()) % num_should_regist_server_;
+      size_t target = hash(parameter.key()) % num_should_regist_server_;
       auto current_parameter = packed_server_tasks_[target].add_parameter_list();
       //set key
       current_parameter->set_key(parameter.key());
@@ -80,10 +84,9 @@ void MLtaskHandler::pack_parameters(){
       for(int k = 0; k < parameter.shape_size(); k++){
         current_parameter->add_shape(parameter.shape(k));
       }
-      //set other
     }
   }
-  cout << "参数打包完毕" << endl;
+  LOG(INFO) << "参数打包完毕";
 }
 
 void MLtaskHandler::pack_all_server_tasks(){
@@ -96,20 +99,23 @@ void MLtaskHandler::pack_all_server_tasks(){
     server_task.set_optimizer(optimizer);
     server_task.set_learning_rate(learning_rate);
   }
-  cout << "server任务成功打包为" << packed_server_tasks_.size() << "包" << endl;
+  LOG(INFO) << "server任务成功打包为" << packed_server_tasks_.size() << "包";
   server_task_is_ready = true;
 }
 
+//TODO
 void MLtaskHandler::query(std::string& _return) {
   // Your implementation goes here
   printf("query\n");
 }
 
+//TODO
 void MLtaskHandler::worker_submit_kth_result(const std::string& kth_result) {
   // Your implementation goes here
   printf("worker_submit_kth_result\n");
 }
 
+//TODO
 void MLtaskHandler::server_regist_to_master(std::string& _return, const std::string& server_info) {
   // Your implementation goes here
   printf("server_regist_to_master\n");
