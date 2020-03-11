@@ -10,6 +10,7 @@ message DistInfo{
   //数据划分方式
   optional string data_division = 4;
   optional string model_division = 5;
+  optional string dataset = 6;
 }
 
 message ParameterInfo{
@@ -21,12 +22,7 @@ message ParameterInfo{
   optional string pata_store_path = 4;
 }
 
-message KthResult{
-  optional uint64 num_correct_answers = 1;
-  optional uint64 training_size = 2;
-  optional uint32 t = 3;
-}
-
+//TODO:可能改表示网络结构的数据结构为图
 //用来表示网络结构
 //层的数量，超参数有哪些，具体有哪些层
 message NetworkStruct{
@@ -64,33 +60,21 @@ message HyperParameter{
   optional string consistency = 6;
 }
 
-message SerializedNodeInfo{
- optional string ip = 1;
- optional uint32 port = 2;
+message ServerInfo{
+  optional string ip = 1;
+  optional uint32 port = 2;
 }
 
 message ServerTask{
   //for transport
-  optional uint32 epoch = 1;
-  optional string consistency = 2;
+  optional uint32 epoch = 6;
+  //optional string consistency = 7;
   //for update parameter
-  optional string model_division = 3;
-  optional ParameterInfo parameter_info = 4;
-  optional string optimizer = 5;
-  optional float learning_rate = 6;
+  //optional string model_division = 5;
+  //optional ParameterInfo parameter_info = 2;
+  optional string optimizer = 1;
+  optional float learning_rate = 2;
   repeated Parameter parameter_list = 100;
-}
-
-message LayerStruct{
-  optional Parameter input_shape = 1;
-  optional Parameter output_shape = 2;
-  optional string name = 3;
-  optional string activation = 4;
-}
-
-message ServerInfo{
-  optional string ip = 1;
-  optional uint32 port = 2;
 }
 
 message WorkerTask{
@@ -101,9 +85,10 @@ message WorkerTask{
   optional uint32 nums_layers = 3;
   optional uint32 mini_batch_size = 4;
   optional string loss = 5;
-  repeated LayerStruct layers = 100;
+  //repeated LayerStruct layers = 100;
   //for transport
   optional uint32 epoch = 6;
   optional string consistency = 7;
   repeated ServerInfo servers = 10;
+  optional string dataset = 11;
 }

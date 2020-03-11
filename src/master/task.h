@@ -35,10 +35,10 @@ struct Task{
     
   
   //server_part
-  std::string model_division;
-  std::string parameter_initialize;
-  std::string parameter_load_path;
-  std::string pata_store_path;		
+  //std::string model_division;
+  //std::string parameter_initialize;
+  //std::string parameter_load_path;
+  //std::string pata_store_path;		
   std::string optimizer;
   float learning_rate;
   //parameter
@@ -47,5 +47,6 @@ struct Task{
   //common
   uint32_t epoch;
   std::string consistency;
+  std::string dataset;
 };
 #endif
