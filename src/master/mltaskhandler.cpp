@@ -1,6 +1,6 @@
 #include"mltaskhandler.h"
 
-#include<functional>
+#include<random>
 
 using namespace std;
 using namespace ::apache::thrift;
@@ -51,18 +51,18 @@ void MLtaskHandler::server_ask_for_task(std::string& _return) {
   //TODO:
   //check task is ready or not
   if(!server_task_is_ready){
-    LOG(INFO) << "任务尚未打包完成";
+    //LOG(INFO) << "任务尚未打包完成";
     return;
   }
-  if(current_package_id >= num_should_regist_server_){
+  if(current_package_id_ >= num_should_regist_server_){
     LOG(INFO) << "领取次数超出范围(一个server一轮只允许一次)";
-    LOG(INFO) << "已领取次数："  << current_package_id;
+    LOG(INFO) << "已领取次数："  << current_package_id_;
     return;
   }
   //序列化当前任务
   string current_task;
-  packed_server_tasks_[current_package_id].SerializeToString(&current_task);
-  current_package_id++;
+  packed_server_tasks_[current_package_id_].SerializeToString(&current_task);
+  current_package_id_++;
   LOG(INFO) << "任务长度:" << current_task.length();
   _return = current_task;
 }
@@ -70,20 +70,31 @@ void MLtaskHandler::server_ask_for_task(std::string& _return) {
 //TODO网络结构可能会更改为图
 void MLtaskHandler::pack_parameters(){
   //对于每层网络
-  for(int i = 0; i < network_struct_.layers_size(); i++){
+  //修改参数分配机制由hash改为随机数分配
+  //hash 到 某一server
+  //问题hash的并不均匀，很难hash到0
+  default_random_engine random;
+  uniform_int_distribution<size_t> range(0, num_should_regist_server_-1);
+  //Input层需要去除
+  for(int i = 1; i < network_struct_.layers_size(); i++){
     const task::Layer& layer = network_struct_.layers(i);
+    //修改参数分配机制由hash改为随机数分配
     //每一个参数
     for(int j = 0; j < layer.parameter_list_size(); j++){
       const task::Parameter& parameter = layer.parameter_list(j);
-      //hash 到 某一server
-      size_t target = hash(parameter.key()) % num_should_regist_server_;
+      //无非就是一个随机数问题，只要对于这个key产生一个0-num_should_regist_server_-1的随机数
+      //size_t target = hash_str_to_long(parameter.key().c_str()) % num_should_regist_server_;
+      size_t target = range(random);
       auto current_parameter = packed_server_tasks_[target].add_parameter_list();
+      LOG(INFO) << "dispatch parameter: " << parameter.key() << " to " << target;
       //set key
       current_parameter->set_key(parameter.key());
       //set shape
       for(int k = 0; k < parameter.shape_size(); k++){
         current_parameter->add_shape(parameter.shape(k));
       }
+      //set dim
+      current_parameter->set_dim(parameter.dim());
     }
   }
   LOG(INFO) << "参数打包完毕";
@@ -115,8 +126,12 @@ void MLtaskHandler::worker_submit_kth_result(const std::string& kth_result) {
   printf("worker_submit_kth_result\n");
 }
 
-//TODO
-void MLtaskHandler::server_regist_to_master(std::string& _return, const std::string& server_info) {
-  // Your implementation goes here
-  printf("server_regist_to_master\n");
+void MLtaskHandler::server_regist_to_master(const std::string& server_info) {
+  //增加注册服务器数量并反序列化注册信息保存起来
+  num_registed_server_++;
+  task::ServerInfo current_info;
+  current_info.ParseFromString(server_info);
+  LOG(INFO) << current_info.ip() << " " << current_info.port() << " 已注册";
+  info_of_servers_.push_back(current_info);
+  LOG(INFO) << "记载了" << info_of_servers_.size() << "server节点信息" << endl; 
 }

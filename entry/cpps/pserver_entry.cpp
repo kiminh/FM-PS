@@ -5,10 +5,16 @@
 using namespace std;
 
 int main(int argc, char** argv){
-  auto server = new Pserver(argv[1], atoi(argv[2]));
-  server->regist_to_master();
+  google::InitGoogleLogging(argv[0]);
+  FLAGS_logtostderr = true;
+  shared_ptr<Pserver> server = make_shared<Pserver>(argv[1], atoi(argv[2]), atoi(argv[3]));
   LOG(INFO) << "server 启动";
+  server->build_parameter_server();
+  server->build_client_and_connect_to_master();
+  server->regist_to_master();
   server->ask_for_task();
+  server->load_parameter_to_memory();
+  server->print_in_memory_parameter();
   return 0;
 }
  

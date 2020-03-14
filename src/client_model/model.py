@@ -46,7 +46,8 @@ class Model(object):
     #网络信息设置好后各网络各自负责生成对应Layer的pb对象
     self.network_struct = NetworkStruct()
     self.network_struct.nums_layers = len(self.client_network)
-    #TODO:存储网络的数据结构可能从list改为图    for i in range(len(self.client_network)):
+    #TODO:存储网络的数据结构可能从list改为图
+    for i in range(len(self.client_network)):
       self.network_struct.layers.append(self.client_network[i].pb_layer)
 
     #超参数
@@ -122,5 +123,6 @@ class Model(object):
   #该函数每隔固定时间向master请求返回计算结果，若返回不为空则打印
   #若连接失败则重新连接
   def query(self):
+    pass
     #TODO
     #建立与master连接并接收训练结果机制

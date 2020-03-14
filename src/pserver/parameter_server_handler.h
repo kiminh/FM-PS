@@ -1,7 +1,8 @@
 #ifndef PARAMETER_SERVER_HANDLER_H
 #define PARAMETER_SERVER_HANDLER_H
 
-#include "ParameterServer.h"
+//TODO风格修正 避免 .. 快捷路径
+#include "../common/gen-cpp/ParameterServer.h"
 
 #include<string>
 #include<unordered_map>
@@ -13,14 +14,14 @@
 //因此，该类需要能接收参数的表示
 class ParameterServerHandler : virtual public ParameterServerIf {
  public:
-  ParameterServerHandler();
+  ParameterServerHandler(){}
 
   void pull(std::string& _return, const int32_t epoch);
 
   void push(const int32_t epoch, const std::string& gradient);
 
   //接收任务信息
-  void receive_task_from_pserver(const std::unordered_map<std::string, ParameterValue*>& parameters);
+  //void receive_task_from_pserver(const std::unordered_map<std::string, std::shared_ptr<ParameterValue>>& parameters);
 
  private:
  //控制现在进行到的epoch
@@ -32,5 +33,12 @@ class ParameterServerHandler : virtual public ParameterServerIf {
   //@para string 参数的key
   //@para Parameter基类的指针， 动态绑定为对应参数
   std::unordered_map<std::string, ParameterValue*> parameters_;
+
+  //序列化现有参数
+  std::string serialize();
+
+  //优化器
+  //优化器需要接收参数map的指针，以及梯度map的指针，以及一个学习率
+  
 };
 #endif

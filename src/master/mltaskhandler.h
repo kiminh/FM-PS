@@ -19,7 +19,8 @@
 class MLtaskHandler : virtual public MLtaskIf {
  public:
   MLtaskHandler(uint32_t num_workers, uint32_t num_servers)
-     : num_registed_worker_(0), num_should_regist_worker_(num_workers), num_should_regist_server_(num_servers) {
+     : server_task_is_ready(false), num_registed_server_(0), num_registed_worker_(0), 
+     current_package_id_(0), num_should_regist_worker_(num_workers), num_should_regist_server_(num_servers) {
       packed_server_tasks_.resize(num_should_regist_server_);
      }
 
@@ -33,7 +34,7 @@ class MLtaskHandler : virtual public MLtaskIf {
 
   void worker_submit_kth_result(const std::string& kth_result);
 
-  void server_regist_to_master(std::string& _return, const std::string& server_info);
+  void server_regist_to_master(const std::string& server_info);
 
   void server_ask_for_task(std::string& _return);
 
@@ -42,12 +43,15 @@ class MLtaskHandler : virtual public MLtaskIf {
   task::NetworkStruct network_struct_;
   Task task_;
   uint32_t num_registed_worker_;
+  uint32_t num_registed_server_;
   uint32_t num_should_regist_worker_;
   uint32_t num_should_regist_server_;
-  uint32_t current_package_id;
+  uint32_t current_package_id_;
   //pack parameter
   std::vector<task::ServerTask> packed_server_tasks_;
   bool server_task_is_ready;
+  //需要有一个vector来保存server信息
+  std::vector<task::ServerInfo> info_of_servers_;
   void pack_parameters();
   void pack_all_server_tasks();
 };

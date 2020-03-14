@@ -61,10 +61,12 @@ class DenseLayer(BaseLayer):
     self.pb_layer.activation = self.activation
     w = self.pb_layer.parameter_list.add()
     w.key = self.name_w
+    w.dim = 2
     w.shape.append(self.w_shape[0])
     w.shape.append(self.w_shape[1])
     b = self.pb_layer.parameter_list.add()
     b.key = self.name_b
+    b.dim = 2
     b.shape.append(self.b_shape[0])
     b.shape.append(self.b_shape[1])
 
