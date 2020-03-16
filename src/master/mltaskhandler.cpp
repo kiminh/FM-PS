@@ -17,29 +17,25 @@ bool MLtaskHandler::submit(const std::string& dist_info, const std::string& netw
     LOG(INFO) << "反序列化网络结构" << deserialize_network_struct;
     return false;
   }
-  task_.dataset = dist_info_.dataset();
-  task_.data_path = dist_info_.data_path();
+  pack_all_worker_tasks();
   pack_all_server_tasks();
   return true;
 }
 
-void MLtaskHandler::worker_regist_to_master(std::string& _return, const std::string& worker_info) {
-  //TODO更改接口应该为uint
-  string id = to_string(num_registed_worker_++);
-  _return = id;
+int32_t MLtaskHandler::worker_regist_to_master() {
+  LOG(INFO) << "worker注册中";
+  int32_t id = num_registed_worker_++;
+  LOG(INFO) << "当前id" << id;
+  return id;
 }
 
 void MLtaskHandler::worker_ask_for_task(std::string& _return) {
-  //TODO增加任务check逻辑
-  //Task 信息序列化到WorkerTask(protobuf对象)
-  task::WorkerTask worker_task;
-  worker_task.set_data_path(task_.data_path);
-  worker_task.set_dataset(task_.dataset);
-  LOG(INFO) << worker_task.data_path();
-  LOG(INFO) << worker_task.dataset();
+  if(!worker_task_is_ready){
+    return;
+  }
   //序列化为字符串
   string serialized_task;
-  if(!worker_task.SerializeToString(&serialized_task)){
+  if(!worker_task_.SerializeToString(&serialized_task)){
     LOG(INFO) << "序列化worker任务失败";
   }
   LOG(INFO) << "任务字节数：" << serialized_task.length();
@@ -134,4 +130,33 @@ void MLtaskHandler::server_regist_to_master(const std::string& server_info) {
   LOG(INFO) << current_info.ip() << " " << current_info.port() << " 已注册";
   info_of_servers_.push_back(current_info);
   LOG(INFO) << "记载了" << info_of_servers_.size() << "server节点信息" << endl; 
+}
+
+void MLtaskHandler::pack_all_worker_tasks(){
+  //数据信息
+  //data_path
+  worker_task_.set_data_path(dist_info_.data_path());
+  //data_division
+  worker_task_.set_data_division(dist_info_.data_division());
+  //data_set
+  worker_task_.set_dataset(dist_info_.dataset());
+  //TODO
+  //网络信息
+  //通信信息
+  //ServerInfo
+  if(num_registed_server_ != num_should_regist_server_){
+    LOG(ERROR) << "在打包Pserver节点时发现节点注册数量出现错误";
+    LOG(INFO) << "应注册节点:" << num_should_regist_server_;
+    LOG(INFO) << "实际注册节点:" << num_registed_server_;
+    return;
+  }
+  //打包节点信息
+  const size_t size = info_of_servers_.size();
+  for(size_t i = 0; i < size; i++){
+    auto server_info = worker_task_.add_servers();
+    server_info->set_ip(info_of_servers_[i].ip());
+    server_info->set_port(info_of_servers_[i].port());
+  }
+  worker_task_is_ready = true;
+  LOG(INFO) << "Tworker任务打包完毕";
 }

@@ -99,9 +99,11 @@ void Pserver::ask_for_task(){
     //过于频繁导致提交的任务得不到响应
     (*task_).server_ask_for_task(server_task);
     if(!server_task.empty()){
-      server_task_.ParseFromString(server_task);
+      handler_->receive_task_from_pserver(server_task);
       break;
     }
+    //delay
+    sleep(1);
   }
   //打印信息
   /*
@@ -114,48 +116,21 @@ void Pserver::ask_for_task(){
   }*/
 }
 
-//对于每一个参数构建一个对象（vector 或者矩阵）
-//进行初始化，建立这个映射
-void Pserver::load_parameter_to_memory(){
-  //TODO,目前默认初始化为随机初始化
-  float upper_bound = 1.0;
-  float lower_bound = 0.0;
-  for(int i = 0; i < server_task_.parameter_list_size(); i++){
-    const task::Parameter& parameter = server_task_.parameter_list(i);
-    //根据dim判断类型
-    //随机赋值后加入哈希表
-    if(1 == parameter.dim()){
-      /*
-      shared_ptr<VectorParameter> value 
-          = make_shared<VectorParameter>(parameter.data_type(), {parameter.shape(0)});
-      value->set_random(upper_bound, lower_bound);*/
-      VectorParameter* value = new VectorParameter(1, {parameter.shape(0)});
-      //shared_ptr<VectorParameter> value = make_shared<VectorParameter>(1, {parameter.shape(0)});
-      value->set_random(upper_bound, lower_bound);
-      parameter_[parameter.key()] = value;
-    }
-    else if(2 == parameter.dim()){
-      /*shared_ptr<MatrixParameter> value 
-        = make_shared<MatrixParameter>(1, {parameter.shape(0), parameter.shape(1)});*/
-      MatrixParameter* value = new MatrixParameter(1, {parameter.shape(0), parameter.shape(1)});
-      value->set_random(upper_bound,lower_bound);
-      parameter_[parameter.key()] = value;
-    }
-  }
+void Pserver::start_serve(){
+  parameter_server_->serve();
 }
 
-void Pserver::load_all_tasks_to_handler(){
-;
+void Pserver::building_connecting_deliver_tasks(void* __this){
+  Pserver* _this = (Pserver*) __this;
+  _this->build_client_and_connect_to_master();
+  _this->regist_to_master();
+  _this->ask_for_task();
+  _this->handler_->load_parameter_to_memory();
+  _this->handler_->print_in_memory_parameter();
 }
 
-void Pserver::print_in_memory_parameter(){
-  for(auto iterator = parameter_.begin(); iterator != parameter_.end(); iterator++){
-    LOG(INFO) << (*iterator).first;
-    ParameterValue* value = (*iterator).second;
-    const int dim = value->shape_.size();
-    LOG(INFO) << "是" << dim << "维的参数";
-    LOG(INFO) << "值为:";
-    value->print_value();
-  }
-  
+void Pserver::init_sub_task_thread(){
+  thread sub_task_thread(building_connecting_deliver_tasks, (void*)this);
+  LOG(INFO) << "启动与Master交互的子线程";
+  sub_task_thread.detach();
 }

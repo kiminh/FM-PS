@@ -4,6 +4,7 @@
 //c_and_c++头文件
 #include<string>
 #include<unordered_map>
+#include<thread>
 
 //其他库头文件
 #include <thrift/concurrency/ThreadManager.h>
@@ -84,6 +85,19 @@ class Pserver{
  public:
   //构造
   Pserver(const std::string& master_ip, int master_port, int parameter_server_port);
+
+  //启动一个线程去执行以下任务:
+  // server->build_client_and_connect_to_master();
+  // server->regist_to_master();
+  // server->ask_for_task();
+  // server->load_parameter_to_memory();
+  // server->print_in_memory_parameter();
+  //并且将必要的数据传给parameterserverhandler
+  //对于该线程来说是不需要等待它执行完毕的，所以不需要join,而是detach
+  void init_sub_task_thread();
+
+  //与Master交互任务以及提供任务信息给parameter_server_handler任务的集合
+  static void building_connecting_deliver_tasks(void* __this);
   
   //调用建立参数服务器的user是main，因此如果建立不成功就要抛出异常给它
   //成功的话只是把参数服务器建立起来，不需要返回什么信息给它
@@ -98,14 +112,8 @@ class Pserver{
   //并将返回的信息存入ServerTask
   void ask_for_task();
 
-  //根据SeverTask中的信息加载对应参数到parameter_
-  void load_parameter_to_memory();
-
-  //检验参数的加载情况
-  void print_in_memory_parameter();
-
-  //将任务加载到handler上，之后worker与server的交互就在该服务器上
-  void load_all_tasks_to_handler();
+  //使参数服务器开始提供服务
+  void start_serve();
 
   //获取ip
   std::string get_ip();
@@ -121,15 +129,8 @@ class Pserver{
   std::shared_ptr<::apache::thrift::transport::TTransport> transport_;
   //需要保存参数服务器的指针
   std::shared_ptr<::apache::thrift::server::TThreadPoolServer> parameter_server_;
-  //需要接收从master传来的任务
-  task::ServerTask server_task_;
-  //参数表示
-  using Key = std::string;
-  using Value = ParameterValue*;
-  std::unordered_map<Key,Value> parameter_;
   //保存参数服务器handler指针向他传递任务
   std::shared_ptr<ParameterServerHandler> handler_;
-  //Optimizer optimizer_;
 };
 
 #endif

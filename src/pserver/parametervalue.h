@@ -22,6 +22,8 @@ class ParameterValue{
 
   virtual void print_value() = 0;
 
+  virtual const std::vector<float>& get_values() = 0;
+
   int data_type_;
 
   std::vector<uint32_t> shape_;
@@ -50,6 +52,10 @@ class VectorParameter : public ParameterValue{
       std::cout << values[i] << " ";
     }
     std::cout << std::endl;
+  }
+
+  const std::vector<float>& get_values(){
+    return values;
   }
 
  private:
@@ -82,6 +88,7 @@ class MatrixParameter : public ParameterValue{
     for(size_t i = 0; i < row; i++){
       for(size_t j = 0; j < column; j++){
         values[i][j] = range(random);
+        array_values.push_back(values[i][j]);
       }
     }
   }
@@ -98,8 +105,14 @@ class MatrixParameter : public ParameterValue{
       std::cout << std::endl;
     }*/
  }
+
+  const std::vector<float>& get_values(){
+    return array_values;
+  }
+ 
  private:
   //TODO暂定只实现float
   std::vector<std::vector<float>> values;
+  std::vector<float> array_values;
 };
 #endif

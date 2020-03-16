@@ -1,8 +1,16 @@
+import sys
+sys.path.append("../tworker")
+sys.path.append("..")
+sys.path.append("../common")
+sys.path.append("../common/gen-py")
+
 import logging
 import numpy as np
-import sys
-sys.path.append("../src/exception")
-sys.path.append("..")
+import time
+
+#proto
+from transport_info_pb2 import *
+from parameter_server_pb2 import *
 
 #序列化结构
 from dataloader.data_handler import * 
@@ -11,6 +19,10 @@ from dataloader.data_handler import *
 from task import MLtask
 from task.ttypes import *
 from task.constants import *
+
+from parameter_server import ParameterServer
+from parameter_server.ttypes import *
+from parameter_server.constants import *
 
 #thrift RPC客户端
 from thrift import Thrift
@@ -35,9 +47,9 @@ class Tworker(object):
     #与master的客户端
     self.master_client = None
     #与一组server的客户端列表
-    self.parameter_client_list = None
+    self.parameter_client_list = []
     self.server_group = None
-    self.task = None
+    self.task = WorkerTask()
     self.network = None
     self.data = None
     #记录现在训练到第几个epoch
@@ -59,8 +71,8 @@ class Tworker(object):
     logger.info("成功建立客户端")
     #注册信息
     #master并不需要掌握worker的身份信息
-    self.id = self.master_client.worker_regist_to_master("")
-    logger.info("id: "+self.id)
+    self.id = self.master_client.worker_regist_to_master()
+    logger.info("id: " + str(self.id))
 
   #@para无
   #return 任务信息WorkerTask（内含一组需要连接的服务器）
@@ -72,13 +84,14 @@ class Tworker(object):
       #请求任务
       task = self.master_client.worker_ask_for_task()
       #任务包括什么：服务器信息+训练任务
-      #目前想法：只要字节流长度大于0就看作有任务
-      #判断任务
       if len(task) <= 0:
+        #目前做法进程挂起
+        time.sleep(1)
         continue
       #解析任务
       if not self.task.ParseFromString(task):
         logger.error("反序列化任务失败")
+        return
       if self.task.HasField('dataset'):
         logger.info("收到任务中的数据集为"+self.task.dataset)
       if self.task.HasField('data_path'):
@@ -86,6 +99,7 @@ class Tworker(object):
       #判断任务
       break
 
+  """
   #动态构建神经网络保存到self.network
   #以及建立self.parameters和self.gradient的映射(key->对应shape和data_type的ndarray)
   def set_training_env(self):
@@ -121,7 +135,7 @@ class Tworker(object):
             output_size = parameter_shape[1]
         layer_list.append(FullConnected(output_size, activation))
     #所有层都添加后就可以建立网络对象
-    self.network = Network(layer_list)
+    self.network = Network(layer_list)"""
 
 
   #根据self.task中的数据路径
@@ -149,16 +163,25 @@ class Tworker(object):
     #该函数的关键仍然在于确保与每一个server只建立一次客户端并且成功的连接
     #拿到应该建立的服务器组信息
     self.server_group = self.task.servers
+    logger.info("需要连接" + str(len(self.server_group)))
     #如果客户端列表个数已经建立了对应的客户端那么就退出
     if len(self.parameter_client_list) == len(self.server_group):
       return
-    for rank in range(len(server_group)):
+    for rank in range(len(self.server_group)):
       #建立客户端
-      transport = TSocket.TSocket(server_group[rank].ip, server_group[rank].port)
+      transport = TSocket.TSocket(self.server_group[rank].ip, self.server_group[rank].port)
       transport = TTransport.TBufferedTransport(transport)
       protocol = TBinaryProtocol.TBinaryProtocol(transport)
-      self.parameter_client_list.append(ParameterServer.Client(protocol))
-      transport.open()
+      client = ParameterServer.Client(protocol)
+      #需要确保server可连接
+      while True:
+        try:
+          transport.open()
+        except Thrift.TException as ex:
+          continue
+        self.parameter_client_list.append(client)
+        logger.info("建立与参数服务器:"+self.server_group[rank].ip+" "+str(self.server_group[rank].port)+"的连接")
+        break
 
 
   #key operation
@@ -170,20 +193,21 @@ class Tworker(object):
     #先添加再整理
     for client in self.parameter_client_list:
       serialized_part_parameter = client.pull(t)
-      serialized_parameter_list.appen(serialized_part_parameter)
-    #每一个服务器都会返回一个序列化后的dict
+      serialized_parameter_list.append(serialized_part_parameter)
+    #每一个服务器都会返回一个序列化后的Key-value pair组
     for part_parameter in serialized_parameter_list:
-      pass
       #反序列化为一个protobuf对象
-      #TODO定义该对象结构
-      """
-      protobuf_object = Object()
-      protobuf_object.ParseFromString(part_parameter)
-      #按key遍历
-      for key in protobuf_object:
-        value = ...
-        #fit value into self.parameters
-      """
+      parameter_from_one_server = ParametersOrGradients()
+      parameter_from_one_server.ParseFromString(part_parameter)
+      for pair in parameter_from_one_server.pairs:
+        values = np.array(pair.values).reshape(tuple(pair.shape))
+        self.parameters[pair.name] = values
+
+  def print_newest_parameter(self):
+    for key in self.parameters:
+      print("key为:"+key)
+      print("shape为:",self.parameters[key].shape)
+      print(self.parameters[key])
 
   #将最新的参数self.parameters更新到self.network
   def fill_newest_parameter(self):
@@ -207,7 +231,7 @@ class Tworker(object):
 
   #将第t轮的forward结果传给master
   def evaluation(self,t):
-    pass	
+    pass
 
 
 #worker需要什么：

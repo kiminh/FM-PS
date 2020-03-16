@@ -9,7 +9,7 @@ int main(int argc, char** argv){
   google::InitGoogleLogging(argv[0]);
   FLAGS_logtostderr = true;
   LOG(INFO) << "准备创建master";
-  Master* master = new Master(atoi(argv[1]), 3, 3);  
+  Master* master = new Master(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));  
   LOG(INFO) << "Master 启动";
   master->start_serve();
   return 0;

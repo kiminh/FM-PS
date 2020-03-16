@@ -7,8 +7,8 @@ service MLtask{
   //model会查询目前的任务进度
   binary query(),
 
-  //worker发送自己的ip和port向master注册，（若当前信息不可用则返回空）需要返回其id
-  binary worker_regist_to_master(1:binary worker_info),
+  //worker请求注册,需要返回其id
+  i32 worker_regist_to_master(),
 
   //worker需要loop来请求计算任务
   //返回计算任务以及需要连接到的server组信息
