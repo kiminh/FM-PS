@@ -101,10 +101,10 @@ void MLtaskHandler::pack_all_server_tasks(){
   uint32_t epoch = network_struct_.hparameter().epoch();
   string optimizer(network_struct_.hparameter().optimizer()); 
   float learning_rate = network_struct_.hparameter().learning_rate();
-  for(auto server_task : packed_server_tasks_){
-    server_task.set_epoch(epoch);
-    server_task.set_optimizer(optimizer);
-    server_task.set_learning_rate(learning_rate);
+  for(int i = 0; i < packed_server_tasks_.size(); i++){
+    packed_server_tasks_[i].set_epoch(epoch);
+    packed_server_tasks_[i].set_optimizer(optimizer);
+    packed_server_tasks_[i].set_learning_rate(learning_rate);
   }
   LOG(INFO) << "server任务成功打包为" << packed_server_tasks_.size() << "包";
   server_task_is_ready = true;
@@ -140,8 +140,20 @@ void MLtaskHandler::pack_all_worker_tasks(){
   worker_task_.set_data_division(dist_info_.data_division());
   //data_set
   worker_task_.set_dataset(dist_info_.dataset());
-  //TODO
+  worker_task_.set_epoch(network_struct_.hparameter().epoch());
+  worker_task_.set_mini_batch_size(network_struct_.hparameter().mini_batch_size());
   //网络信息
+  //目前的简单网络worker只需要只要name，output_size,activation
+  //TODO:加入更丰富的特性
+  for(int i = 0; i < network_struct_.layers_size(); i++){
+    const task::Layer& layer = network_struct_.layers(i);
+    auto layer_for_worker = worker_task_.add_layers();
+    if(layer.has_activation()){
+      layer_for_worker->set_activation(layer.activation());
+    }
+    layer_for_worker->set_name(layer.name());
+    layer_for_worker->set_output_size(layer.output_size());
+  }
   //通信信息
   //ServerInfo
   if(num_registed_server_ != num_should_regist_server_){

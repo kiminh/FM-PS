@@ -10,6 +10,7 @@
 #include<unordered_map>
 
 #include"parametervalue.h"
+#include"../optimizer/optimizer.h"
 
 #include<glog/logging.h>
 
@@ -39,7 +40,7 @@ class ParameterServerHandler : virtual public ParameterServerIf {
   //目标需要更新的轮数 
   int32_t target_epoch;
   //优化器
-  //Optimizer optimizer_;
+  SgdOptimizer optimizer_;
 
   //直接在接收任务时接收到这里
   task::ServerTask task_;
@@ -47,10 +48,14 @@ class ParameterServerHandler : virtual public ParameterServerIf {
   //参数表示
   //@para string 参数的key
   //@para Parameter基类的指针， 动态绑定为对应参数
-  std::unordered_map<std::string, ParameterValue*> parameters_;
+  std::unordered_map<std::string, std::shared_ptr<ParameterValue>> parameters_;
+  std::unordered_map<std::string, std::shared_ptr<ParameterValue>> gradients_;
 
   //序列化现有参数
   std::string serialize();
+
+  //更新参数
+  void update_parameter();
   
 };
 #endif

@@ -20,6 +20,8 @@ class InputLayer(BaseLayer):
   def build_pb_layer(self):
     self.pb_layer = Layer()
     self.pb_layer.name = self.name
+    #for worker
+    self.pb_layer.output_size = self.output_shape
     parameter = self.pb_layer.parameter_list.add()
     parameter.key = self.name+"_"+"datashape"
     #暂且定为一个int
@@ -50,7 +52,7 @@ class DenseLayer(BaseLayer):
     #先暂定为二维的矩阵
     #一个元组
     self.w_shape = (self.input_shape, self.output_shape)
-    self.b_shape = (self.input_shape, self.output_shape)
+    self.b_shape = self.output_shape
     self.rank = rank
     self.name_w = self.name_w + "_" + str(self.rank)
     self.name_b = self.name_b + "_" + str(self.rank)
@@ -59,6 +61,8 @@ class DenseLayer(BaseLayer):
     self.pb_layer = Layer()
     self.pb_layer.name = self.name
     self.pb_layer.activation = self.activation
+    #for worker
+    self.pb_layer.output_size = self.output_shape
     w = self.pb_layer.parameter_list.add()
     w.key = self.name_w
     w.dim = 2
@@ -66,8 +70,7 @@ class DenseLayer(BaseLayer):
     w.shape.append(self.w_shape[1])
     b = self.pb_layer.parameter_list.add()
     b.key = self.name_b
-    b.dim = 2
-    b.shape.append(self.b_shape[0])
-    b.shape.append(self.b_shape[1])
+    b.dim = 1
+    b.shape.append(self.b_shape)
 
 #TODO:加入更多种类的神经网络层

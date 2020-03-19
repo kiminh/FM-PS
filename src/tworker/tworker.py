@@ -3,10 +3,15 @@ sys.path.append("../tworker")
 sys.path.append("..")
 sys.path.append("../common")
 sys.path.append("../common/gen-py")
+sys.path.append("../network")
 
 import logging
 import numpy as np
 import time
+
+#网络结构
+from network.layer import *
+from new_network import *
 
 #proto
 from transport_info_pb2 import *
@@ -14,6 +19,7 @@ from parameter_server_pb2 import *
 
 #序列化结构
 from dataloader.data_handler import * 
+from dataloader.my_data_loader import*
 
 #thrift RPC调用
 from task import MLtask
@@ -57,6 +63,7 @@ class Tworker(object):
     self.gradient = dict()
     self.parameters = dict()
     self.data_handler = None
+    self.serialized_gradient = dict()
 
   def build_client_to_master(self):
     if self.master_client is None:
@@ -83,7 +90,7 @@ class Tworker(object):
     while True:
       #请求任务
       task = self.master_client.worker_ask_for_task()
-      #任务包括什么：服务器信息+训练任务
+  #任务包括什么：服务器信息+训练任务
       if len(task) <= 0:
         #目前做法进程挂起
         time.sleep(1)
@@ -99,50 +106,38 @@ class Tworker(object):
       #判断任务
       break
 
-  """
   #动态构建神经网络保存到self.network
-  #以及建立self.parameters和self.gradient的映射(key->对应shape和data_type的ndarray)
+  #建立key->value的映射可以交给第一次pull参数时来做
+  #TODO避免Magic number，将这里的命名规则与model进行统一组织
   def set_training_env(self):
     #建立层
     layer_list = []
     for layer in self.task.layers:
-      #对于每一层需要做两件事
-      #一是动态建立网络层对象
-      #而是保存其中的参数key,shape,data_type建立key->value(ndarray)的工作
-      #两个映射,一个是为了接收来自server的参数值，能够替换当前网络的所有参数
-      #二是要建立梯度，即push的内容
+      #动态建立网络层对象
       name = layer.name
       #TODO
       if name == "Input":
         #对于输入层来说，只需要知道输入的shape
-        pass
+        layer_list.append(InputLayer((layer.output_size,)))
+        print(name)
+        print(layer.output_size)
       #TODO 可以抽象出一个函数
       elif name == "Dense":
         #要构建全连接层只需要知道输出size和激活函数
         activation = layer.activation
-        output_size = None
-        #参数列表
-        for parameter in layer.parameter_list:
-          parameter_name = parameter.name
-          #TODOdata_type
-          parameter_shape = parameter.shape
-          #建立参数和梯度的空数组
-          self.gradient[parameter_name] = np.zeros(shape)
-          self.parameters[parameter_name] = np.zeros(shape)
-          #对于全连接层的output_size
-          #TODO目前是二维
-          if parameter.dim == 2:
-            output_size = parameter_shape[1]
-        layer_list.append(FullConnected(output_size, activation))
+        output_size = layer.output_size
+        activation_obj = None
+        if activation == "Sigmoid":
+          activation_obj = Sigmoid()
+        elif activation == "SoftmaxLoss":
+          activation_obj = SoftmaxLoss()
+        layer_list.append(FullConnected(output_size, activation = activation_obj))
+        print(name)
+        print(output_size, activation)
     #所有层都添加后就可以建立网络对象
-    self.network = Network(layer_list)"""
+    self.network = Network(layer_list)
+    print(self.network)
 
-
-  #根据self.task中的数据路径
-  #以及任务划分模式
-  #"average" = id * data_size / work_nums (可以算出起始位置)
-  #有了路径，有了如何分配那么就可以把数据加载到self.data
-  #同时根据路径不同文件格式解析训练数据
   def load_data(self):
     path = self.task.data_path
     dataset = self.task.dataset
@@ -155,7 +150,8 @@ class Tworker(object):
     logger.info(len(self.data[1][0]))
     #test_data size
     logger.info(len(self.data[2][0]))
-    
+    #TODO将数据整合my_data_loader合并进data_handler
+    self.data = data_wrapper(self.data)
 
   #根据self.server_group中的信息建立一个客户端组
   #TODO思考如何确保连接是稳定且符合预期
@@ -187,6 +183,9 @@ class Tworker(object):
   #key operation
   #通过客户端组向server group请求第t轮的参数
   #需要做一个整理到self.parameter
+  #self.parameters:
+  #嵌套字典
+  #{  0 : {key,value}  }
   def pull_parameter(self,t):
     serialized_parameter_list = []
     #对于每一个客户端都会拉回若干参数，需要将参数按key整理
@@ -195,55 +194,132 @@ class Tworker(object):
       serialized_part_parameter = client.pull(t)
       serialized_parameter_list.append(serialized_part_parameter)
     #每一个服务器都会返回一个序列化后的Key-value pair组
-    for part_parameter in serialized_parameter_list:
+    for i in range(len(serialized_parameter_list)):
       #反序列化为一个protobuf对象
       parameter_from_one_server = ParametersOrGradients()
-      parameter_from_one_server.ParseFromString(part_parameter)
+      parameter_from_one_server.ParseFromString(serialized_parameter_list[i])
+      #对于每个客户端都要维护它自己的key
+      #如果是第一次拉取参数那么需要建立
+      dict_of_parameter_from_one_server = self.parameters.get(i, dict())
       for pair in parameter_from_one_server.pairs:
         values = np.array(pair.values).reshape(tuple(pair.shape))
-        self.parameters[pair.name] = values
-
-  def print_newest_parameter(self):
-    for key in self.parameters:
-      print("key为:"+key)
-      print("shape为:",self.parameters[key].shape)
-      print(self.parameters[key])
+        #print(pair.name)
+        #print(values)
+        dict_of_parameter_from_one_server[pair.name] = values
+      self.parameters[i] = dict_of_parameter_from_one_server
 
   #将最新的参数self.parameters更新到self.network
   def fill_newest_parameter(self):
-    pass
+    for parameter_dict in self.parameters:
+      for key in self.parameters[parameter_dict]:
+        #example: Dense_w_2 第三层网络的权重参数
+        key_infomation = key.split('_')
+        pos = int(key_infomation[2])
+        parameter_attr = key_infomation[1]
+        values = self.parameters[parameter_dict][key]
+        self.network.layers[pos].fill_parameters(values, parameter_attr, key)
 
-  #开始第t个epoch的训练
-  #首先拉取参数，之后更新现有网络的参数，然后开始训练
-  #保存第t轮的梯度到self.gradient
-  def train(self,t):
-    pass
+  def train(self):
+    logger.info("开始训练")
+    #TODO抽象出这个处理过程
+    start = self.id * 5000
+    end = self.id * 5000 + 5000
+    x_train = self.data[0][0][start:end]
+    y_train = self.data[0][1][start:end]
+    start = self.id * 500
+    end = self.id * 500 + 500
+    x_test = self.data[2][0][start:end]
+    y_test = self.data[2][1][start:end]
+    num_data = len(x_train)
 
-  #将梯度根据self.server_group中的id进行分片
-  #返回分组完成的梯度列表
-  def slice_gradient():
-    pass
+    epoch = self.task.epoch
+    mini_batch_size = self.task.mini_batch_size
+    if 0:
+      self.network.training(x_train,y_train, x_test, y_test, epoch, 0.3, mini_batch_size)
+    else:
+      print("epoch:",epoch)
+      #对于每一轮训练来说
+      for t in range(1,epoch+1):
+        pack = list(zip(x_train,y_train))
+        batches = [pack[j:j+mini_batch_size] for j in range(0,num_data,mini_batch_size)]
+        #对于每个mini-batch
+        #都要做以下步骤
+        #pull最新的参数-》fill参数到神经网络结构-》产生最新的梯度-》抽取最新的梯度
+        #打包为对应每个Pserver负责的部分-》push到参数服务器
+        for mini_batch in batches:
+          #拉取第t轮的参数
+          self.pull_parameter(t)
+          #fill parameters
+          self.fill_newest_parameter()
+          #执行forward和backward
+          self.one_batch_forward_and_backward(mini_batch)
+          #抽取参数到self.gradient
+          self.get_gradient_from_network(mini_batch_size)
+          #对于每一个Server拿到的无非是对应key的KeyValuePair列表
+          #所以需要把每一个参数分到之前对应的服务器上
+          self.slice_gradient()
+          self.push_gradient(t)
+        self.evaluation(t)
+
+  def get_gradient_from_network(self, mini_batch_size):
+    for i in range(len(self.network.layers)):
+      #抽取每一个参数(key, gradients) pair to self.gradient
+      if hasattr(self.network.layers[i], "w_name"):
+        self.gradient[self.network.layers[i].w_name] = self.network.layers[i].one_batch_dw / mini_batch_size
+        self.network.layers[i].one_batch_dw = 0
+      if hasattr(self.network.layers[i], "b_name"):
+        self.gradient[self.network.layers[i].b_name] = self.network.layers[i].one_batch_db / mini_batch_size
+        self.network.layers[i].one_batch_db = 0
+
+  #将梯度根据self.parameter中的rank进行分片
+  #目的是产生分组完成并序列化的梯度列表
+  def slice_gradient(self):
+    #获取每个服务器拥有的key
+    for key_dict in self.parameters:
+      #如果有3个服务器，那么就是0,1,2
+      #所以要有三个ParametersOrGradients对象
+      gradient_pb = ParametersOrGradients()
+      for key in self.parameters[key_dict]:
+        gradient_pb.pairs.append(self.build_parameter(key))
+      self.serialized_gradient[key_dict] = gradient_pb.SerializeToString()
+
+
+  def one_batch_forward_and_backward(self, mini_batch):
+    #每个batch包括training_data和one-hot vector label
+    for x,t in mini_batch:
+      y = self.network.feedforward(x)
+      #loss 层 forward
+      self.network.layers[-1](y, input_size = y.shape[0], t = t)
+      self.network.backward()
 
   #key operation
-  #通过slice_gradient完成的列表，客户端组发送梯度到连接的服务端
-  def push_gradient(self):
-    pass
+  #通过slice_gradient完成的dict，客户端组发送梯度到连接的服务端
+  def push_gradient(self,t):
+    for client_rank in self.serialized_gradient:
+      client = self.parameter_client_list[client_rank]
+      client.push(t, self.serialized_gradient[client_rank])
+
+  #产生指定key的PB对象
+  def build_parameter(self, key):
+    serialized_parameter = KeyValuePair()
+    #key
+    serialized_parameter.name = key
+    # if key == "Dense_w_2":
+    #   print(self.gradient[key].flatten()[:2])
+    #平铺
+    gradient = self.gradient[key]
+    if gradient.ndim == 2:
+      serialized_parameter.values.extend(gradient.flatten())
+    else:
+      serialized_parameter.values.extend(gradient)
+    return serialized_parameter
 
   #将第t轮的forward结果传给master
   def evaluation(self,t):
-    pass
-
-
-#worker需要什么：
-"""
-1.从脚本拉起之后要连接到master//
-2.连接之后要进行注册拿到id//
-3.要loop请求server信息以及任务//
-4.拿到任务之后要建立网络，拿到数据，连接到所有server//
-5.请求参数pull(half done)
-6.计算
-7.push梯度
-8.evaluation 并返回结果给master
-8.拿到下一轮参数
-...
-"""
+    self.pull_parameter(t)
+    self.fill_newest_parameter()
+    start = self.id * 500
+    end = self.id * 500 + 500
+    x_test = self.data[2][0][start:end]
+    y_test = self.data[2][1][start:end]
+    self.network.evaluate(x_test, y_test)

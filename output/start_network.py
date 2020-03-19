@@ -11,18 +11,18 @@ from hyperparameter import *
 client = Model()
 client.set_network([
   InputLayer(784),
-  DenseLayer(30, "sigmoid"),
-  DenseLayer(15, "sigmoid"),
-  DenseLayer(20, "sigmoid")],
+  DenseLayer(30, "Sigmoid"),
+  DenseLayer(15, "Sigmoid"),
+  DenseLayer(10, "SoftmaxLoss")],
   ClientHyperParameter(
   optimizer = "SGD",
   loss = "cross_entropy",
   learning_rate = 0.3,
-  epoch = 30,
+  epoch = 10,
   mini_batch_size = 15)
 )
 
-client.set_dist_info(Dist(data_path = "../../data/mnist.pkl.gz", dataset = "MNIST"))
+client.set_dist_info(Dist(data_path = "../data/mnist.pkl.gz", dataset = "MNIST"))
 
 master_ip = "10.0.0.15"
 master_port = "1000"
