@@ -1,0 +1,90 @@
+"""
+  def load_data(self):
+    path = self.task.data_path
+    dataset = self.task.dataset
+    self.dataloader = DataLoader(path = path, dataset = dataset)
+    self.data = self.dataloader.get_data()
+    #TODO:添加处理其他数据集
+    #training_data size
+    logger.info(len(self.data[0][0]))
+    #validation_data size
+    logger.info(len(self.data[1][0]))
+    #test_data size
+    logger.info(len(self.data[2][0]))
+
+  #根据self.server_group中的信息建立一个客户端组
+  #TODO思考如何确保连接是稳定且符合预期
+  def connect_to_server(self):
+    #该函数的关键仍然在于确保与每一个server只建立一次客户端并且成功的连接
+    #拿到应该建立的服务器组信息
+    self.server_group = self.task.servers
+    logger.info("需要连接" + str(len(self.server_group)))
+    #如果客户端列表个数已经建立了对应的客户端那么就退出
+    if len(self.parameter_client_list) == len(self.server_group):
+      return
+    for rank in range(len(self.server_group)):
+      #建立客户端
+      transport = TSocket.TSocket(self.server_group[rank].ip, self.server_group[rank].port)
+      transport = TTransport.TBufferedTransport(transport)
+      protocol = TBinaryProtocol.TBinaryProtocol(transport)
+      client = ParameterServer.Client(protocol)
+      #需要确保server可连接
+      while True:
+        try:
+          transport.open()
+        except Thrift.TException as ex:
+          continue
+        self.parameter_client_list.append(client)
+        logger.info("建立与参数服务器:"+self.server_group[rank].ip+" "+str(self.server_group[rank].port)+"的连接")
+        break
+
+
+  #key operation
+  #通过客户端组向server group请求第t轮的参数
+  #需要做一个整理到self.parameter
+  def pull_parameter(self,t):
+    serialized_parameter_list = []
+    #对于每一个客户端都会拉回若干参数，需要将参数按key整理
+    #先添加再整理
+    for client in self.parameter_client_list:
+      serialized_part_parameter = client.pull(t)
+      serialized_parameter_list.append(serialized_part_parameter)
+    #每一个服务器都会返回一个序列化后的Key-value pair组
+    for part_parameter in serialized_parameter_list:
+      #反序列化为一个protobuf对象
+      parameter_from_one_server = ParametersOrGradients()
+      parameter_from_one_server.ParseFromString(part_parameter)
+      for pair in parameter_from_one_server.pairs:
+        values = np.array(pair.values).reshape(tuple(pair.shape))
+        self.parameters[pair.name] = values
+
+  def print_newest_parameter(self):
+    for key in self.parameters:
+      print("key为:"+key)
+      print("shape为:",self.parameters[key].shape)
+      print(self.parameters[key])
+
+  #将最新的参数self.parameters更新到self.network
+  def fill_newest_parameter(self):
+    pass
+
+  #开始第t个epoch的训练
+  #首先拉取参数，之后更新现有网络的参数，然后开始训练
+  #保存第t轮的梯度到self.gradient
+  def train(self,t):
+    pass
+
+  #将梯度根据self.server_group中的id进行分片
+  #返回分组完成的梯度列表
+  def slice_gradient():
+    pass
+
+  #key operation
+  #通过slice_gradient完成的列表，客户端组发送梯度到连接的服务端
+  def push_gradient(self):
+    pass
+
+  #将第t轮的forward结果传给master
+  def evaluation(self,t):
+    pass
+"""

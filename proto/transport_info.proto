@@ -22,7 +22,6 @@ message ParameterInfo{
   optional string pata_store_path = 4;
 }
 
-//TODO:可能改表示网络结构的数据结构为图
 //用来表示网络结构
 //层的数量，超参数有哪些，具体有哪些层
 message NetworkStruct{
@@ -34,8 +33,9 @@ message NetworkStruct{
 //表示神经网络层
 //知道输出规模，输入规模，该层的name，激活函数是什么，有哪些参数
 message Layer{
-  optional string name = 3;
-  optional string activation = 4;
+  optional string name = 1;
+  optional string activation = 2;
+  optional uint32 output_size = 3;
   repeated Parameter parameter_list = 100;
 }
 
@@ -47,6 +47,7 @@ message Parameter{
     float32 = 2; 
     float64 = 3;
   }
+  optional Data_type data_type = 4;
   optional uint32 dim = 2;
   repeated uint32 shape = 3;
 }
@@ -85,7 +86,7 @@ message WorkerTask{
   optional uint32 nums_layers = 3;
   optional uint32 mini_batch_size = 4;
   optional string loss = 5;
-  //repeated LayerStruct layers = 100;
+  repeated Layer layers = 100;
   //for transport
   optional uint32 epoch = 6;
   optional string consistency = 7;

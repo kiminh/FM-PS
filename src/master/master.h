@@ -3,6 +3,7 @@
 
 #include<vector>
 #include<string>
+#include<memory>
 
 #include"../common/nodeinfo.h"
 
@@ -11,9 +12,7 @@
 #include <thrift/concurrency/ThreadManager.h>
 #include <thrift/concurrency/ThreadFactory.h>
 #include <thrift/protocol/TBinaryProtocol.h>
-#include <thrift/server/TSimpleServer.h>
 #include <thrift/server/TThreadPoolServer.h>
-#include <thrift/server/TThreadedServer.h>
 #include <thrift/transport/TServerSocket.h>
 #include <thrift/transport/TSocket.h>
 #include <thrift/transport/TTransportUtils.h>
@@ -38,6 +37,6 @@ class Master{
   int port_;
   uint32_t num_workers_;
   uint32_t num_servers_;
-  apache::thrift::server::TSimpleServer* task_server_;
+  std::shared_ptr<::apache::thrift::server::TThreadPoolServer> task_server_;
 };
 #endif

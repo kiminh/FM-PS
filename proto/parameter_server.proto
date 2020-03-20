@@ -1,0 +1,15 @@
+syntax = "proto2";
+package task;
+
+message ParametersOrGradients{
+  repeated KeyValuePair pairs = 1;
+}
+
+message KeyValuePair{
+  optional string name = 1;
+  optional uint32 dim = 2;
+  repeated uint32 shape = 3;
+  //连续的value, 接收方需要根据shape来解析
+  repeated float values = 4;
+  //TODO:data_type
+}

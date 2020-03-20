@@ -1,6 +1,6 @@
 #include"mltaskhandler.h"
 
-#include<functional>
+#include<random>
 
 using namespace std;
 using namespace ::apache::thrift;
@@ -17,29 +17,25 @@ bool MLtaskHandler::submit(const std::string& dist_info, const std::string& netw
     LOG(INFO) << "反序列化网络结构" << deserialize_network_struct;
     return false;
   }
-  task_.dataset = dist_info_.dataset();
-  task_.data_path = dist_info_.data_path();
+  pack_all_worker_tasks();
   pack_all_server_tasks();
   return true;
 }
 
-void MLtaskHandler::worker_regist_to_master(std::string& _return, const std::string& worker_info) {
-  //TODO更改接口应该为uint
-  string id = to_string(num_registed_worker_++);
-  _return = id;
+int32_t MLtaskHandler::worker_regist_to_master() {
+  LOG(INFO) << "worker注册中";
+  int32_t id = num_registed_worker_++;
+  LOG(INFO) << "当前id" << id;
+  return id;
 }
 
 void MLtaskHandler::worker_ask_for_task(std::string& _return) {
-  //TODO增加任务check逻辑
-  //Task 信息序列化到WorkerTask(protobuf对象)
-  task::WorkerTask worker_task;
-  worker_task.set_data_path(task_.data_path);
-  worker_task.set_dataset(task_.dataset);
-  LOG(INFO) << worker_task.data_path();
-  LOG(INFO) << worker_task.dataset();
+  if(!worker_task_is_ready){
+    return;
+  }
   //序列化为字符串
   string serialized_task;
-  if(!worker_task.SerializeToString(&serialized_task)){
+  if(!worker_task_.SerializeToString(&serialized_task)){
     LOG(INFO) << "序列化worker任务失败";
   }
   LOG(INFO) << "任务字节数：" << serialized_task.length();
@@ -51,18 +47,18 @@ void MLtaskHandler::server_ask_for_task(std::string& _return) {
   //TODO:
   //check task is ready or not
   if(!server_task_is_ready){
-    LOG(INFO) << "任务尚未打包完成";
+    //LOG(INFO) << "任务尚未打包完成";
     return;
   }
-  if(current_package_id >= num_should_regist_server_){
+  if(current_package_id_ >= num_should_regist_server_){
     LOG(INFO) << "领取次数超出范围(一个server一轮只允许一次)";
-    LOG(INFO) << "已领取次数："  << current_package_id;
+    LOG(INFO) << "已领取次数："  << current_package_id_;
     return;
   }
   //序列化当前任务
   string current_task;
-  packed_server_tasks_[current_package_id].SerializeToString(&current_task);
-  current_package_id++;
+  packed_server_tasks_[current_package_id_].SerializeToString(&current_task);
+  current_package_id_++;
   LOG(INFO) << "任务长度:" << current_task.length();
   _return = current_task;
 }
@@ -70,20 +66,31 @@ void MLtaskHandler::server_ask_for_task(std::string& _return) {
 //TODO网络结构可能会更改为图
 void MLtaskHandler::pack_parameters(){
   //对于每层网络
-  for(int i = 0; i < network_struct_.layers_size(); i++){
+  //修改参数分配机制由hash改为随机数分配
+  //hash 到 某一server
+  //问题hash的并不均匀，很难hash到0
+  default_random_engine random;
+  uniform_int_distribution<size_t> range(0, num_should_regist_server_-1);
+  //Input层需要去除
+  for(int i = 1; i < network_struct_.layers_size(); i++){
     const task::Layer& layer = network_struct_.layers(i);
+    //修改参数分配机制由hash改为随机数分配
     //每一个参数
     for(int j = 0; j < layer.parameter_list_size(); j++){
       const task::Parameter& parameter = layer.parameter_list(j);
-      //hash 到 某一server
-      size_t target = hash(parameter.key()) % num_should_regist_server_;
+      //无非就是一个随机数问题，只要对于这个key产生一个0-num_should_regist_server_-1的随机数
+      //size_t target = hash_str_to_long(parameter.key().c_str()) % num_should_regist_server_;
+      size_t target = range(random);
       auto current_parameter = packed_server_tasks_[target].add_parameter_list();
+      LOG(INFO) << "dispatch parameter: " << parameter.key() << " to " << target;
       //set key
       current_parameter->set_key(parameter.key());
       //set shape
       for(int k = 0; k < parameter.shape_size(); k++){
         current_parameter->add_shape(parameter.shape(k));
       }
+      //set dim
+      current_parameter->set_dim(parameter.dim());
     }
   }
   LOG(INFO) << "参数打包完毕";
@@ -94,10 +101,10 @@ void MLtaskHandler::pack_all_server_tasks(){
   uint32_t epoch = network_struct_.hparameter().epoch();
   string optimizer(network_struct_.hparameter().optimizer()); 
   float learning_rate = network_struct_.hparameter().learning_rate();
-  for(auto server_task : packed_server_tasks_){
-    server_task.set_epoch(epoch);
-    server_task.set_optimizer(optimizer);
-    server_task.set_learning_rate(learning_rate);
+  for(int i = 0; i < packed_server_tasks_.size(); i++){
+    packed_server_tasks_[i].set_epoch(epoch);
+    packed_server_tasks_[i].set_optimizer(optimizer);
+    packed_server_tasks_[i].set_learning_rate(learning_rate);
   }
   LOG(INFO) << "server任务成功打包为" << packed_server_tasks_.size() << "包";
   server_task_is_ready = true;
@@ -115,8 +122,53 @@ void MLtaskHandler::worker_submit_kth_result(const std::string& kth_result) {
   printf("worker_submit_kth_result\n");
 }
 
-//TODO
-void MLtaskHandler::server_regist_to_master(std::string& _return, const std::string& server_info) {
-  // Your implementation goes here
-  printf("server_regist_to_master\n");
+void MLtaskHandler::server_regist_to_master(const std::string& server_info) {
+  //增加注册服务器数量并反序列化注册信息保存起来
+  num_registed_server_++;
+  task::ServerInfo current_info;
+  current_info.ParseFromString(server_info);
+  LOG(INFO) << current_info.ip() << " " << current_info.port() << " 已注册";
+  info_of_servers_.push_back(current_info);
+  LOG(INFO) << "记载了" << info_of_servers_.size() << "server节点信息" << endl; 
+}
+
+void MLtaskHandler::pack_all_worker_tasks(){
+  //数据信息
+  //data_path
+  worker_task_.set_data_path(dist_info_.data_path());
+  //data_division
+  worker_task_.set_data_division(dist_info_.data_division());
+  //data_set
+  worker_task_.set_dataset(dist_info_.dataset());
+  worker_task_.set_epoch(network_struct_.hparameter().epoch());
+  worker_task_.set_mini_batch_size(network_struct_.hparameter().mini_batch_size());
+  //网络信息
+  //目前的简单网络worker只需要只要name，output_size,activation
+  //TODO:加入更丰富的特性
+  for(int i = 0; i < network_struct_.layers_size(); i++){
+    const task::Layer& layer = network_struct_.layers(i);
+    auto layer_for_worker = worker_task_.add_layers();
+    if(layer.has_activation()){
+      layer_for_worker->set_activation(layer.activation());
+    }
+    layer_for_worker->set_name(layer.name());
+    layer_for_worker->set_output_size(layer.output_size());
+  }
+  //通信信息
+  //ServerInfo
+  if(num_registed_server_ != num_should_regist_server_){
+    LOG(ERROR) << "在打包Pserver节点时发现节点注册数量出现错误";
+    LOG(INFO) << "应注册节点:" << num_should_regist_server_;
+    LOG(INFO) << "实际注册节点:" << num_registed_server_;
+    return;
+  }
+  //打包节点信息
+  const size_t size = info_of_servers_.size();
+  for(size_t i = 0; i < size; i++){
+    auto server_info = worker_task_.add_servers();
+    server_info->set_ip(info_of_servers_[i].ip());
+    server_info->set_port(info_of_servers_[i].port());
+  }
+  worker_task_is_ready = true;
+  LOG(INFO) << "Tworker任务打包完毕";
 }
